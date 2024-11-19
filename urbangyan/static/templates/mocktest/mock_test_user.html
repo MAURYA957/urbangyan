@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        {% for mocktest in mocktests %}
+            <div class="col-md-3 mb-4">
+                <div class="card h-100" style="background-color: #f0f8ff; border: 1px solid orange;">
+                    <div class="card-body d-flex flex-column justify-content-start">
+                        <strong class="card-title">{{ mocktest.Exam_Name }}</strong>
+                        <p class="card-text">{{ mocktest.Instructions|truncatewords:10 }}</p>
+                        <a href="{% url 'mocktest_question_detail' mocktest.pk %}" class="btn btn-link p-0">Take Test</a>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+<style>
+    /* Card styling */
+    .card {
+        min-height: 250px;
+        display: flex;
+        flex-direction: column;
+        justify-content: start;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .card:hover {
+        transform: scale(1.03);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+    }
+</style>

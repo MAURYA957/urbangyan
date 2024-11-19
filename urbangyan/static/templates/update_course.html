@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update Course</title>
+</head>
+<body>
+    <h1>Update Course</h1>
+
+    <!-- Form for updating the course -->
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <!-- Course Title -->
+        <label for="title">Course Title:</label>
+        <input type="text" id="title" name="title" value="{{ course.title }}" required><br>
+
+        <!-- Course Description -->
+        <label for="description">Description:</label>
+        <textarea id="description" name="description" required>{{ course.description }}</textarea><br>
+
+        <!-- Course Image -->
+        <label for="image">Image:</label>
+        <input type="file" id="image" name="image"><br>
+        <!-- Show current course image -->
+        <img src="{{ course.image.url }}" alt="{{ course.title }}" style="width:100px;height:100px;"><br>
+
+        <!-- Course Price -->
+        <label for="price">Price:</label>
+        <input type="number" id="price" name="price" value="{{ course.price }}" step="0.01" required><br>
+
+        <!-- Subjects Dropdown (Multiple selection) -->
+        <label for="subjects">Subjects:</label>
+        <select id="subjects" name="subjects" multiple>
+            {% for subject in subjects %}
+                <option value="{{ subject.id }}" {% if subject in course.subjects.all %}selected{% endif %}>{{ subject.name }}</option>
+            {% endfor %}
+        </select><br>
+
+        <!-- Submit Button -->
+        <button type="submit">Update</button>
+    </form>
+</body>
+</html>
+
+
+{% endblock content %}

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <a href="/createquizname/" class="btn btn-success">Add Quiz Name</a>
+    <h5></h5>
+    <!-- Search Container -->
+    <div class="mb-3">
+        <input type="text" id="search" class="form-control" placeholder="Search Quiz Names" onkeyup="filterQuestions()">
+    </div>
+
+    <table class="table table-bordered" style="background-color: #f0f8ff;"> <!-- Light blue background for the table -->
+        <thead style="background-color: #f8d8c0;"> <!-- Light orange header -->
+            <tr>
+                <th>Quiz</th>
+                <th>Quiz Name</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="questionTableBody">
+            {% for quizname in quiznames %}
+                <tr>
+                    <td>{{ quizname.quiz.quiz }}</td>
+                    <td>{{ quizname.quizname }}</td> <!-- Corrected: Access quizname directly -->
+                    <td>
+                        {% if user.is_authenticated %}
+                            {% if user.is_staff_user or user.is_superuser %} <!-- Combined staff and superuser -->
+                                <a href="{% url 'update_quizname' quizname.pk %}" class="btn btn-warning btn-sm">Update</a>
+                            {% endif %}
+                            {% if user.is_superuser %} <!-- Keep delete button for superusers -->
+                                <a href="{% url 'delete_quizname' quizname.pk %}" class="btn btn-danger btn-sm">Delete</a>
+                            {% endif %}
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+    function filterQuestions() {
+        const input = document.getElementById('search');
+        const filter = input.value.toLowerCase();
+        const table = document.getElementById('questionTableBody');
+        const rows = table.getElementsByTagName('tr');
+
+        for (let i = 0; i < rows.length; i++) {
+            const cols = rows[i].getElementsByTagName('td');
+            let rowVisible = false;
+            for (let j = 0; j < cols.length; j++) {
+                if (cols[j]) {
+                    const txtValue = cols[j].textContent || cols[j].innerText;
+                    if (txtValue.toLowerCase().indexOf(filter) > -1) {
+                        rowVisible = true;
+                        break;
+                    }
+                }
+            }
+            rows[i].style.display = rowVisible ? "" : "none"; // Show or hide row
+        }
+    }
+</script>
+
+{% endblock content %}

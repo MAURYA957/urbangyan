@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block content %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ blog.title }}</title>
+
+    <!-- Bootstrap CSS for styling -->
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <h1>{{ blog.title }}</h1>
+        <p><strong>By:</strong> {{ blog.author.username }}</p>
+        <p>{{ blog.content }}</p>
+
+        {% if blog.image %}
+            <img src="{{ blog.image.url }}" alt="Blog Image" class="img-fluid">
+        {% endif %}
+
+        <p><strong>Created At:</strong> {{ blog.created_at }}</p>
+        <p><strong>Updated At:</strong> {{ blog.updated_at }}</p>
+
+        <!-- Like, Share, and Comment buttons -->
+        <div class="mt-4">
+            <!-- Like Button -->
+            <form method="POST" action="{% url 'like-blog' blog.id %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-primary">Like ({{ blog.likes_count }})</button>
+            </form>
+
+            <!-- Share Button with Social Media Links -->
+            <div class="mt-2">
+                <div class="dropdown">
+                    <button class="btn btn-outline-success dropdown-toggle" type="button" id="shareDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        Share
+                    </button>
+                    <div class="dropdown-menu" aria-labelledby="shareDropdown">
+                        <a class="dropdown-item" href="https://api.whatsapp.com/send?text={{ blog.get_absolute_url }}" target="_blank">WhatsApp</a>
+                        <a class="dropdown-item" href="https://www.instagram.com/?url={{ blog.get_absolute_url }}" target="_blank">Instagram</a>
+                        <a class="dropdown-item" href="https://www.linkedin.com/shareArticle?mini=true&url={{ blog.get_absolute_url }}" target="_blank">LinkedIn</a>
+                        <a class="dropdown-item" href="https://www.facebook.com/sharer/sharer.php?u={{ blog.get_absolute_url }}" target="_blank">Facebook</a>
+                        <a class="dropdown-item" href="https://twitter.com/intent/tweet?url={{ blog.get_absolute_url }}" target="_blank">Twitter</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Comment Form -->
+            <div class="mt-4">
+                <form method="POST" action="{% url 'comment-blog' blog.id %}">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <textarea name="comment" class="form-control" rows="3" placeholder="Add a comment"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-outline-secondary">Comment</button>
+                </form>
+            </div>
+
+            <!-- Display Comments -->
+            <div class="mt-4">
+                <h4>Comments ({{ blog.comments.count }})</h4>
+                <ul class="list-group">
+                    {% for comment in blog.comments.all %}
+                        <li class="list-group-item">
+                            <strong>{{ comment.author.username }}:</strong> {{ comment.content }} <small class="text-muted">{{ comment.created_at }}</small>
+                        </li>
+                    {% empty %}
+                        <li class="list-group-item">No comments yet.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <a href="{% url 'blog_user' %}" class="btn btn-link mt-4">Back to Blogs</a>
+        </div>
+    </div>
+
+    <!-- Ensure that jQuery, Popper.js, and Bootstrap JS are properly included -->
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.1/dist/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
+{% endblock content %}

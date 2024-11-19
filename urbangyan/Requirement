@@ -1,0 +1,29 @@
+# Core Django framework
+django>=4.0,<5.0
+
+# PostgreSQL adapter for Python
+psycopg2>=2.9,<3.0
+
+# Django REST framework for building APIs
+djangorestframework>=3.12,<4.0
+
+# JSON Web Token authentication for DRF
+djangorestframework-simplejwt>=5.0,<6.0
+
+# Image processing library
+Pillow>=9.0,<10.0
+
+# Automatic generation of Swagger/OpenAPI documentation for DRF APIs
+drf-yasg>=1.20,<2.0
+
+# Handling Cross-Origin Resource Sharing (CORS) headers
+django-cors-headers>=3.10,<4.0
+
+# Debugging tool for Django development
+django-debug-toolbar>=3.0,<4.0
+
+# Logging handler for concurrent logging in multi-threaded applications
+concurrent-log-handler>=0.9,<1.0
+
+# CKEditor integration for rich text editing in Django
+django-ckeditor>=6.0,<7.0

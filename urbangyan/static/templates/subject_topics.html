@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Course, Units, and Topics</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <!-- jQuery and Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</head>
+<body>
+
+<div class="container mt-4">
+    <!-- Navigation Bar for Course Selection -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <a class="navbar-brand" href="#">Courses</a>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav">
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="courseDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        Select Course
+                    </a>
+                    <div class="dropdown-menu" aria-labelledby="courseDropdown" id="courseDropdownMenu">
+                        <!-- Courses loaded dynamically -->
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="row mt-4">
+        <!-- Sidebar for Units and Topics -->
+        <div class="col-md-4">
+            <h3>Units and Topics</h3>
+            <ul id="unitsSidebar" class="list-group">
+                <!-- Units and topics will be dynamically loaded here via AJAX -->
+            </ul>
+        </div>
+
+        <!-- Main Content Area for Unit/Topic Content -->
+        <div class="col-md-8">
+            <h3>Content</h3>
+            <div id="contentArea">
+                <!-- Content will be displayed here based on topic selection -->
+                <p>Select a topic to view the content here.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Function to load courses into the dropdown
+function loadCourses() {
+    $.ajax({
+        url: "{% url 'load_courses' %}",  // Django URL to load courses
+        type: "GET",
+        success: function(data) {
+            $('#courseDropdownMenu').html(data.courses_html);  // Populate courses dropdown
+        }
+    });
+}
+
+// Function to load units based on selected course
+function loadUnits(courseId) {
+    $.ajax({
+        url: "{% url 'load_units' %}",  // Django URL for loading units based on course
+        type: "GET",
+        data: {
+            'course_id': courseId
+        },
+        success: function(data) {
+            $('#unitsSidebar').html(data.units_html);  // Update sidebar with units and topics
+        }
+    });
+}
+
+// Function to load content based on selected topic
+function loadContent(topicId) {
+    $.ajax({
+        url: "{% url 'load_content' %}",  // Django URL for loading topic content
+        type: "GET",
+        data: {
+            'topic_id': topicId
+        },
+        success: function(data) {
+            $('#contentArea').html(data.content_html);  // Update content area with the topic content
+        }
+    });
+}
+
+// Handle course selection from the dropdown
+$(document).on('click', '.course-link', function(e) {
+    e.preventDefault();
+    var courseId = $(this).data('course-id');
+    loadUnits(courseId);  // Load units for the selected course
+});
+
+// Handle topic selection from the sidebar
+$(document).on('click', '.topic-link', function(e) {
+    e.preventDefault();
+    var topicId = $(this).data('topic-id');
+    loadContent(topicId);  // Load content for the selected topic
+});
+
+// Load courses on page load
+$(document).ready(function() {
+    loadCourses();
+});
+</script>
+
+</body>
+</html>

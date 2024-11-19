@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="text-center" style="background-color: #f8d8c0; padding: 10px; border-radius: 5px;">Quizzes List</h1> <!-- Light orange background for the title -->
+
+    <div class="row">
+        {% for quiz in quizzes %}
+            <div class="col-md-2 mb-4">  <!-- 5 columns layout -->
+                <div class="card text-center" style="background-color: #f0f8ff; border: 1px solid #dee2e6;">  <!-- Light blue background for the card -->
+                    <div class="card-body">
+                        <strong class="card-title">{{ quiz.quiz }}</strong>
+                        <p></p>
+                        <img src="{{ quiz.image.url }}" alt="{{ quiz.quiz }}" class="img-fluid" style="height: 150px; object-fit: cover;">  <!-- Ensure uniform image size -->
+                        <p></p>
+                        <a href="{% url 'quizname_user' quiz.pk %}" class="btn btn-info btn-block">Go to Quiz</a>  <!-- Use btn-block for full-width buttons -->
+                        <p></p>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% endblock content %}
+
+<style>
+    .bg-light-orange {
+        background-color: #f8d8c0;  /* Light orange background color */
+    }
+</style>

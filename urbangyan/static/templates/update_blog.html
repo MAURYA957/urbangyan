@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update Blog</title>
+</head>
+<body>
+    <h1>Update Blog</h1>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <label for="title">Title:</label>
+        <input type="text" id="title" name="title" value="{{ blog.title }}" required><br>
+
+        <label for="content">Content:</label>
+        <textarea id="content" name="content" rows="4" required>{{ blog.content }}</textarea><br>
+
+        <label for="image">Image:</label>
+        <input type="file" id="image" name="image"><br>
+        <p>Current Image: <img src="{{ blog.image.url }}" alt="Blog Image" width="100"></p>
+
+        <button type="submit">Update</button>
+    </form>
+</body>
+</html>
+{% include 'footer.html' %}
+
+{% endblock content %}

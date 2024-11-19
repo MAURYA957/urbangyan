@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block content %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ mocktest.name }} - Mock Test</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <h1>{{ mocktest.name }}</h1>
+    <p><strong>Duration:</strong> {{ duration }} minutes</p>
+    <p><strong>Instructions:</strong> {{ mocktest.Instructions }}</p>
+
+    <form id="quizForm">
+        {% csrf_token %}
+        <div class="question-container">
+            {% for question in questions %}
+                <fieldset class="question">
+                    <legend>{{ forloop.counter }}. {{ question.question }}</legend>
+                    <div>
+                        <input type="radio" name="question_{{ question.id }}" value="1" id="q{{ question.id }}_1">
+                        <label for="q{{ question.id }}_1">{{ question.option_1 }}</label>
+                    </div>
+                    <div>
+                        <input type="radio" name="question_{{ question.id }}" value="2" id="q{{ question.id }}_2">
+                        <label for="q{{ question.id }}_2">{{ question.option_2 }}</label>
+                    </div>
+                    <div>
+                        <input type="radio" name="question_{{ question.id }}" value="3" id="q{{ question.id }}_3">
+                        <label for="q{{ question.id }}_3">{{ question.option_3 }}</label>
+                    </div>
+                    <div>
+                        <input type="radio" name="question_{{ question.id }}" value="4" id="q{{ question.id }}_4">
+                        <label for="q{{ question.id }}_4">{{ question.option_4 }}</label>
+                    </div>
+                </fieldset>
+            {% endfor %}
+        </div>
+
+        <button type="submit" class="submit-button">Submit Test</button>
+    </form>
+
+    <div id="result" style="display:none;">
+        <h3>Test Submitted</h3>
+        <p><strong>Score:</strong> <span id="score"></span></p>
+        <p><strong>Correct Answers:</strong> <span id="correct_count"></span></p>
+        <p><strong>Badge:</strong> <span id="badge"></span></p>
+    </div>
+
+    <script>
+        // Submit quiz answers using AJAX
+        document.getElementById('quizForm').onsubmit = function(e) {
+            e.preventDefault();
+
+            let answers = {};
+            // Collect selected answers
+            {% for question in questions %}
+                const selectedOption = document.querySelector('input[name="question_{{ question.id }}"]:checked');
+                if (selectedOption) {
+                    answers[{{ question.id }}] = selectedOption.value;
+                }
+            {% endfor %}
+
+            // AJAX request to submit the answers
+            fetch("{% url 'mocktest_submit' mocktest.id %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ answers: answers }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Display results
+                document.getElementById('score').textContent = data.score;
+                document.getElementById('correct_count').textContent = data.correct_count;
+
+                // Display badge
+                let badgeText = "";
+                if (data.score >= 90) {
+                    badgeText = "Gold";
+                } else if (data.score >= 75) {
+                    badgeText = "Silver";
+                } else if (data.score >= 50) {
+                    badgeText = "Bronze";
+                } else {
+                    badgeText = "No Badge";
+                }
+                document.getElementById('badge').textContent = badgeText;
+
+                // Show the result section
+                document.getElementById('result').style.display = 'block';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        };
+    </script>
+</body>
+</html>
+{% endblock content %}

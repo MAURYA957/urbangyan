@@ -1,0 +1,106 @@
+/* General Body Styles */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f0f8ff; /* Light sky blue background */
+    color: #333; /* Dark text for readability */
+    margin: 0;
+    padding: 0;
+}
+
+/* Login Form Container */
+.login-container {
+    max-width: 400px; /* Max width for the container */
+    margin: 100px auto; /* Centering the container vertically and horizontally */
+    padding: 20px;
+    background-color: rgba(135, 206, 250, 0.8); /* Light sky blue with some transparency */
+    border-radius: 8px; /* Rounded corners */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Soft shadow */
+}
+
+/* Form Heading */
+h2 {
+    text-align: center; /* Center align heading */
+    color: #00bfff; /* Sky blue color for headings */
+}
+
+/* Form Inputs */
+input[type="text"],
+input[type="password"] {
+    width: 100%; /* Full width */
+    padding: 10px; /* Padding for inputs */
+    margin: 10px 0; /* Margin between inputs */
+    border: 1px solid #ccc; /* Light border */
+    border-radius: 4px; /* Rounded edges */
+    transition: border-color 0.3s; /* Transition for border color */
+}
+
+/* Input Focus Effect */
+input[type="text"]:focus,
+input[type="password"]:focus {
+    border-color: #00bfff; /* Change border color on focus */
+    outline: none; /* Remove default outline */
+}
+
+/* Buttons */
+button {
+    width: 48%; /* Button width */
+    padding: 10px;
+    margin: 10px 1%; /* Margin between buttons */
+    background-color: #007bff; /* Darker blue for buttons */
+    color: white; /* White text */
+    border: none; /* Remove border */
+    border-radius: 4px; /* Rounded edges */
+    cursor: pointer; /* Pointer on hover */
+    transition: background-color 0.3s; /* Transition for background color */
+}
+
+/* Button Hover Effect */
+button:hover {
+    background-color: #0056b3; /* Darker shade on hover */
+}
+
+/* Error and Success Messages */
+.messages {
+    text-align: center; /* Center align messages */
+    margin: 10px 0; /* Margin for messages */
+    padding: 10px;
+    border-radius: 4px; /* Rounded corners for messages */
+}
+
+/* Error Message Styles */
+.error {
+    color: #ff4c4c; /* Red for errors */
+    background-color: rgba(255, 77, 77, 0.1); /* Light red background */
+}
+
+/* Success Message Styles */
+.success {
+    color: #4caf50; /* Green for success */
+    background-color: rgba(76, 175, 80, 0.1); /* Light green background */
+}
+
+/* Admin Dashboard Styles */
+.admin-dashboard {
+    padding: 20px;
+    margin: 20px auto; /* Center the content */
+    max-width: 800px; /* Max width for dashboard */
+    background-color: #fff; /* White background */
+    border-radius: 8px; /* Rounded corners */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Soft shadow */
+}
+
+.admin-dashboard h1 {
+    color: #00bfff; /* Sky blue for dashboard title */
+    text-align: center; /* Center align dashboard title */
+}
+
+/* Links */
+a {
+    color: #007bff; /* Link color */
+    text-decoration: none; /* Remove underline */
+}
+
+/* Link Hover Effect */
+a:hover {
+    text-decoration: underline; /* Underline on hover */
+}

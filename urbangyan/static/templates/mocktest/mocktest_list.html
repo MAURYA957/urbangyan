@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1>Mock Tests</h1>
+  <ul>
+    {% for mocktest in mocktests %}
+      <li>
+        <a href="{% url 'mocktest-detail' mocktest.pk %}">{{ mocktest }}</a>
+      </li>
+    {% endfor %}
+  </ul>
+  <a href="{% url 'mocktest-create' %}">Create New Mock Test</a>
+{% endblock %}

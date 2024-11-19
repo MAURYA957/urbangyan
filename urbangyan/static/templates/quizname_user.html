@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <!-- Left Google Ad Column -->
+        <div class="col-md-2 d-none d-md-block">
+            <!-- Google Ads Container -->
+            <div class="google-ads">
+                <!-- Add your Google AdSense code here -->
+                <p>Google Ad</p>
+            </div>
+        </div>
+
+        <!-- Main Quiz Content in the Center -->
+        <div class="col-md-8">
+            <!-- Header with Search Bar and Create Quiz Button -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="text-primary">Available Quizzes</h2>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="mb-4">
+                <input type="text" class="form-control" placeholder="Search Quizzes..." id="quizSearch" onkeyup="searchQuizzes()">
+            </div>
+
+            <!-- Display Quizzes with Numbering and Buttons -->
+            <div class="row" id="quizList">
+                {% for quizname in quiznames %}
+                    <div class="col-md-12 mb-4">  <!-- Full-width layout for each quiz -->
+                        <div class="card quiz-card p-3 shadow-sm">  <!-- Add shadow for a modern look -->
+                            <div class="d-flex justify-content-between align-items-center">
+                                <!-- Quiz Number and Name -->
+                                <h4 class="quiz-title text-dark">{{ forloop.counter }}. {{ quizname.quizname }}</h4>  <!-- Number quizzes using forloop.counter -->
+
+                                <!-- Buttons for "Go to Quiz", "Update", and "Delete" -->
+                                <div>
+                                    <a href="{% url 'questions_view' quizname.pk %}" class="btn btn-info mr-2">Start Quiz</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Right Google Ad Column -->
+        <div class="col-md-2 d-none d-md-block">
+            <!-- Google Ads Container -->
+            <div class="google-ads">
+                <!-- Add your Google AdSense code here -->
+                <p>Google Ad</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Styling for Google Ads Placeholder */
+    .google-ads {
+        background-color: #eaeaea;
+        padding: 20px;
+        text-align: center;
+        border: 1px solid #ccc;
+        margin-bottom: 20px;
+    }
+
+    /* Light orange background color for quiz cards */
+    .quiz-card {
+        background-color: #f8d8c0;
+        transition: transform 0.2s ease-in-out; /* Add a hover effect */
+    }
+
+    /* Hover effect to make the card stand out */
+    .quiz-card:hover {
+        transform: scale(1.02);
+    }
+
+    /* Styling for the quiz title */
+    .quiz-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+    }
+
+    /* Make the 'Create New Quiz' button green */
+    .btn-success {
+        background-color: #28a745;
+        border-color: #28a745;
+    }
+
+    /* Add margins between buttons */
+    .mr-2 {
+        margin-right: 8px;
+    }
+
+    /* Styling for the page title */
+    .text-primary {
+        font-size: 1.75rem;
+        font-weight: 700;
+    }
+
+    /* Media query for small screens */
+    @media (max-width: 767.98px) {
+        .quiz-title {
+            font-size: 1rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+        }
+    }
+</style>
+
+<script>
+    // Function to filter quizzes based on the search input
+    function searchQuizzes() {
+        const input = document.getElementById('quizSearch').value.toLowerCase();
+        const quizList = document.getElementById('quizList').children;
+
+        for (let i = 0; i < quizList.length; i++) {
+            const quizTitle = quizList[i].getElementsByClassName('quiz-title')[0].textContent.toLowerCase();
+            if (quizTitle.includes(input)) {
+                quizList[i].style.display = "";  // Show quiz
+            } else {
+                quizList[i].style.display = "none";  // Hide quiz
+            }
+        }
+    }
+</script>
+
+{% endblock content %}

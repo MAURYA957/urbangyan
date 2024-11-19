@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block content %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Topics</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* Basic styles for the sidebar */
+        .sidebar {
+            height: 100vh;
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-right: 1px solid #dee2e6;
+            border-left: 1px solid #dee2e6;  /* Added left border for better visibility */
+        }
+        .topic-item {
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .topic-item:hover {
+            background-color: #e9ecef;
+        }
+        .topic-description {
+            padding: 15px;
+        }
+        /* Remove default margins from body to eliminate whitespace */
+        body {
+            margin: 0px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 sidebar">
+                <h4>Topics</h4>
+                <ul class="list-group">
+                    {% for topic in topics %}
+                        <li class="list-group-item topic-item" data-topic="{{ topic.id }}" data-description="{{ topic.description }}">
+                            {{ topic.topic }}
+                        </li>
+                    {% empty %}
+                        <li class="list-group-item">No topics available.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <!-- Main content area -->
+            <div class="col-md-9">
+                <div class="topic-description">
+                    <h4 id="topic-title">Select a topic to see its description</h4>
+                    <p id="topic-content">Click on a topic from the sidebar.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS and dependencies (jQuery, Popper.js) -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.1/dist/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            // Event listener for clicking on a topic
+            $('.topic-item').click(function() {
+                // Get the topic details from the clicked item
+                const topicId = $(this).data('topic');
+                const topicDescription = $(this).data('description');
+                const topicTitle = $(this).text();
+
+                // Update the title and content in the main area
+                $('#topic-title').text(topicTitle);
+                $('#topic-content').text(topicDescription);
+            });
+        });
+    </script>
+</body>
+</html>
+{% endblock content %}

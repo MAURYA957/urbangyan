@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block content %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delete Course</title>
+
+    <!-- Optional Bootstrap CSS for styling -->
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        .confirm-container {
+            background-color: #f0f8ff; /* Light sky blue background */
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            margin-top: 50px;
+        }
+        .btn-delete {
+            background-color: #dc3545; /* Bootstrap danger color for delete button */
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .btn-cancel {
+            margin-left: 10px;
+            text-decoration: none;
+            color: #007bff; /* Bootstrap primary color */
+        }
+    </style>
+</head>
+<body>
+<div class="container mt-5">
+    <div class="confirm-container">
+        <h1 class="text-center mb-4">Delete Course</h1>
+
+        <!-- Display course details before confirming deletion -->
+        <p class="text-center">
+            Are you sure you want to delete the course "<strong>{{ course.title }}</strong>"?<br>
+            Price: <strong>{{ course.price }}</strong><br>
+            Subjects:
+            <strong>
+                {% for subject in course.subjects.all %}
+                    {{ subject.name }}{% if not forloop.last %}, {% endif %}
+                {% endfor %}
+            </strong>
+        </p>
+
+        <!-- Delete confirmation form -->
+        <form method="post" class="text-center">
+            {% csrf_token %}
+            <button type="submit" class="btn-delete">Yes, delete</button>
+            <a href="{% url 'course-list-template' %}" class="btn-cancel">Cancel</a>
+        </form>
+    </div>
+</div>
+
+</body>
+</html>
+{% endblock content %}

@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1>{{ is_update|yesno:"Update Course,Create Course" }}</h1>
+    <form id="course-form" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="hidden" id="course-id" name="course_id" value="{{ course.id|default:'' }}">
+
+        <div class="form-group">
+            <label for="title">Course Title:</label>
+            <input type="text" id="title" name="title" class="form-control" value="{{ course.title|default:'' }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="description">Description:</label>
+            <textarea id="description" name="description" class="form-control" required>{{ course.description|default:'' }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="image">Image:</label>
+            <input type="file" id="image" name="image" class="form-control">
+            {% if course %}
+                <img src="{{ course.image.url }}" alt="{{ course.title }}" style="width:100px;height:100px;" class="mt-2">
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="price">Price:</label>
+            <input type="number" id="price" name="price" class="form-control" value="{{ course.price|default:'' }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="subjects">Subjects:</label>
+            <select id="subjects" name="subjects" multiple class="form-control">
+                {% for subject in subjects %}
+                    <option value="{{ subject.id }}" {% if course and subject in course.subjects.all %}selected{% endif %}>
+                        {{ subject.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <button type="submit" class="btn btn-primary">{{ is_update|yesno:"Update,Create" }}</button>
+        {% if course %}
+            <button type="button" id="delete-button" class="btn btn-danger">Delete</button>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Optional Bootstrap and jQuery JS for AJAX -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    // Handle form submission
+    $('#course-form').on('submit', function(e) {
+        e.preventDefault();  // Prevent the default form submission
+
+        var formData = new FormData(this);
+        var url = "{% url 'create-course' %}"; // Default URL for create action
+
+        if ($('#course-id').val()) {
+            url = "{% url 'update-course' course.id %}"; // Update action URL
+        }
+
+        $.ajax({
+            type: 'POST',
+            url: url,
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                window.location.href = "{% url 'course-user-template' %}"; // Redirect on success
+            },
+            error: function(xhr, status, error) {
+                alert("An error occurred: " + error);
+            }
+        });
+    });
+
+    // Handle delete button click
+    $('#delete-button').on('click', function() {
+        if (confirm("Are you sure you want to delete this course?")) {
+            var courseId = $('#course-id').val();
+            $.ajax({
+                type: 'POST',
+                url: "{% url 'delete-course' course.id %}",
+                data: {
+                    'csrfmiddlewaretoken': '{{ csrf_token }}',
+                    'delete': true
+                },
+                success: function(response) {
+                    window.location.href = "{% url 'course-user-template' %}"; // Redirect on success
+                },
+                error: function(xhr, status, error) {
+                    alert("An error occurred: " + error);
+                }
+            });
+        }
+    });
+});
+</script>
+
+{% endblock content %}

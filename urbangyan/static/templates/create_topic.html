@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block content %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Topic</title>
+
+    <!-- CKEditor 5 script -->
+    <script src="https://cdn.ckeditor.com/ckeditor5/37.0.0/classic/ckeditor.js"></script>
+
+    <!-- Bootstrap CSS (optional for layout) -->
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        /* Light blue background for the form container */
+        .form-container {
+            background-color: #f0f8ff; /* Light sky blue */
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .alert-container {
+            margin-bottom: 20px; /* Spacing for alert messages */
+        }
+    </style>
+</head>
+<body>
+<div class="container mt-5">
+    <div class="row">
+        <!-- Left side: Ads block -->
+        <div class="col-md-3">
+            <div class="ad-container bg-light p-3">
+                <h5>Ad Section</h5>
+                <p>Add relevant advertisements here.</p>
+            </div>
+        </div>
+
+        <!-- Middle: Form for creating a topic with light blue background -->
+        <div class="col-md-6">
+            <div class="form-container">
+                <h1 class="text-center mb-4">Create Topic</h1>
+
+                {% if messages %}
+                    <div class="alert-container">
+                        {% for message in messages %}
+                            <div class="alert alert-info">{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <form method="post" enctype="multipart/form-data" class="form-horizontal">
+                    {% csrf_token %}
+
+                    <!-- Topic Name -->
+                    <div class="form-group">
+                        <label for="topic">Topic Name:</label>
+                        <input type="text" id="topic" name="topic" class="form-control" required>
+                    </div>
+
+                    <!-- Description with CKEditor -->
+                    <div class="form-group">
+                        <label for="description">Description:</label>
+                        <textarea id="description" name="description" class="form-control" required></textarea>
+                    </div>
+
+                    <!-- Image Upload -->
+                    <div class="form-group">
+                        <label for="image">Upload Image:</label>
+                        <input type="file" id="image" name="image" class="form-control-file">
+                    </div>
+
+                    <!-- Select Course -->
+                    <div class="form-group">
+                        <label for="course">Select Course:</label>
+                        <select id="course" name="course" class="form-control" required>
+                            {% for course in courses %}
+                                <option value="{{ course.pk }}">{{ course.title }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Select Subject -->
+                    <div class="form-group">
+                        <label for="subject">Select Subject:</label>
+                        <select id="subject" name="subject" class="form-control" required onchange="loadUnits(this.value)">
+                            <option value="">Select a subject</option>
+                            {% for subject in subjects %}
+                                <option value="{{ subject.pk }}">{{ subject.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Select Unit -->
+                    <div class="form-group">
+                        <label for="unit">Select Unit:</label>
+                        <select id="unit" name="unit" class="form-control" required>
+                            <option value="">Select a unit</option>
+                            <!-- Units will be dynamically loaded based on selected subject -->
+                        </select>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" class="btn btn-primary btn-block">Create Topic</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Right side: Ads block -->
+        <div class="col-md-3">
+            <div class="ad-container bg-light p-3">
+                <h5>Ad Section</h5>
+                <p>Add more advertisements here.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Initialize CKEditor for the description field
+    ClassicEditor
+        .create(document.querySelector('#description'))
+        .catch(error => {
+            console.error(error);
+        });
+
+    // Function to load units based on selected subject
+    function loadUnits(subjectId) {
+        const unitSelect = document.getElementById('unit');
+        unitSelect.innerHTML = ''; // Clear existing options
+        unitSelect.insertAdjacentHTML('beforeend', '<option value="">Select a unit</option>'); // Reset options
+
+        if (subjectId) {
+            fetch(`/get-units/${subjectId}/`)  // Adjust the URL according to your URL patterns
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.units && data.units.length > 0) {
+                        data.units.forEach(unit => {
+                            unitSelect.insertAdjacentHTML('beforeend', `<option value="${unit.id}">${unit.name}</option>`);
+                        });
+                    } else {
+                        unitSelect.insertAdjacentHTML('beforeend', '<option value="">No units available</option>');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading units:', error);
+                    unitSelect.insertAdjacentHTML('beforeend', '<option value="">Error loading units</option>');
+                });
+        }
+    }
+</script>
+
+</body>
+</html>
+{% endblock content %}

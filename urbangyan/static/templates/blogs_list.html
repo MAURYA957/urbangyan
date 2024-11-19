@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block content %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blogs List</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px; /* Add some space above the table */
+        }
+        th, td {
+            border: 1px solid #000; /* Add borders for alignment */
+            padding: 10px;
+            text-align: center;
+        }
+        th {
+            background-color: #FFA500; /* Light orange header */
+            color: white;
+        }
+        td {
+            background-color: #ADD8E6; /* Light blue rows */
+        }
+        .btn-update,
+        .btn-delete,
+        .btn-view {
+            background-color: #007bff; /* Blue for update and view buttons */
+            color: white; /* White text */
+            padding: 5px 10px; /* Button padding */
+            border-radius: 5px; /* Rounded corners */
+            text-decoration: none; /* Remove underline */
+        }
+        .btn-delete {
+            background-color: #dc3545; /* Red for delete button */
+        }
+        .btn-update:hover,
+        .btn-delete:hover,
+        .btn-view:hover {
+            opacity: 0.8; /* Slightly transparent on hover */
+        }
+        .search-bar {
+            margin-bottom: 20px; /* Space between search bar and table */
+            width: 300px; /* Fixed width for search bar */
+            float: right; /* Align search bar to the right */
+        }
+    </style>
+</head>
+<body>
+    <h2></h2>
+    <input type="text" class="form-control search-bar" placeholder="Search Blogs" aria-label="Search" id="searchInput">
+
+    <a href="{% url 'blog-create-template' %}" class="btn btn-success">Create New Blog</a>
+
+    <!-- Blogs Table -->
+    <table>
+        <thead>
+            <tr>
+                <th>Blog Title</th>
+                <th>Author</th>
+                <th>Image</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="blogTableBody">
+            {% for blog in blogs %}
+                <tr>
+                    <td>{{ blog.title }}</td>
+                    <td>{{ blog.author.username }}</td>
+                    <td><img src="{{ blog.image.url }}" alt="{{ blog.title }}" style="width:100px;height:100px;"></td>
+                    <td>
+                        {% if user.is_authenticated %}
+                            {% if user.is_superuser %}
+                                <a href="{% url 'blog-update-template' blog.pk %}" class="btn btn-update">Update</a>
+                                <a href="{% url 'blog-delete-template' blog.pk %}" class="btn btn-delete">Delete</a>
+                            {% elif user.is_staff_user %}
+                                <a href="{% url 'blog-update-template' blog.pk %}" class="btn btn-update">Update</a>
+                            {% endif %}
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <script>
+        // JavaScript to search data by search input
+        function filterBlogs() {
+            const input = document.getElementById('searchInput');
+            const filter = input.value.toLowerCase();
+            const table = document.getElementById('blogTableBody');
+            const rows = table.getElementsByTagName('tr');
+
+            for (let i = 0; i < rows.length; i++) {
+                const cols = rows[i].getElementsByTagName('td');
+                let rowVisible = false;
+
+                // Check each column in the row
+                for (let j = 0; j < cols.length; j++) {
+                    if (cols[j]) {
+                        const txtValue = cols[j].textContent || cols[j].innerText;
+                        // If text matches search input
+                        if (txtValue.toLowerCase().indexOf(filter) > -1) {
+                            rowVisible = true;
+                            break; // Exit loop if match found
+                        }
+                    }
+                }
+                // Toggle row visibility
+                rows[i].style.display = rowVisible ? "" : "none";
+            }
+        }
+
+        // Ensure the function runs on input change
+        document.getElementById('searchInput').addEventListener('keyup', filterBlogs);
+    </script>
+
+</body>
+</html>
+
+{% endblock content %}
