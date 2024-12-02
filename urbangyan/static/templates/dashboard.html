@@ -121,7 +121,7 @@
                 <div class="card-body">
                     <h5 class="card-title">Subject</h5>
                     <p class="card-text">Browse available courses and save them for later.</p>
-                    <a href="/course_user/" class="btn btn-view btn-custom">View</a>
+                    <a href="/subjects_user/" class="btn btn-view btn-custom">View</a>
                     {% if user.is_authenticated %}
                     {% if user.is_staff_user or user.is_superuser %}
                     <a href="/subjects/create/" class="btn btn-create btn-custom">Create</a>
@@ -157,7 +157,7 @@
                     {% if user.is_authenticated %}
                     {% if user.is_staff_user or user.is_superuser %}
                     <a href="/mocktest/new/" class="btn btn-create btn-custom">Create</a>
-                    <a href="/mocktest/'" class="btn btn-alter btn-custom">Alter</a>
+                    <a href="/mocktest/" class="btn btn-alter btn-custom">Alter</a>
                      {% endif %}
                      {% endif %}
                 </div>

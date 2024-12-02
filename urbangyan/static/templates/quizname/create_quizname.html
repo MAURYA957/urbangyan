@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block content %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Quiz Name</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Include CKEditor for quizname (RichText) -->
+    <script src="https://cdn.ckeditor.com/4.16.0/standard/ckeditor.js"></script>
+
+    <style>
+        /* Light blue background for the form container */
+        .form-container {
+            background-color: #f0f8ff; /* Light sky blue */
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+<body>
+<div class="container mt-5">
+    <div class="row">
+        <!-- Middle: Form for creating quiz name -->
+        <div class="col-md-6 offset-md-3">
+            <div class="form-container">
+                <h1 class="text-center mb-4">Create Quiz Name</h1>
+
+                <form method="post" enctype="multipart/form-data" class="form-horizontal">
+                    {% csrf_token %}
+
+                    <!-- Quiz Name Field (Rich Text Editor) -->
+                    <div class="form-group">
+                        <label for="quizname">Quiz Name:</label>
+                        <textarea id="quizname" name="quizname" class="form-control" required>{{ quizname.quizname }}</textarea>
+                    </div>
+
+                    <!-- Quiz Dropdown -->
+                    <div class="form-group">
+                        <label for="quiz">Select Quiz:</label>
+                        <select id="quiz" name="quiz" class="form-control" required>
+                            <option value="" disabled selected>Select a quiz</option> <!-- Placeholder option -->
+                            {% for quiz in quizzes %}
+                                <option value="{{ quiz.id }}">{{ quiz.quiz }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Number of Questions -->
+                    <div class="form-group">
+                        <label for="No_of_Questions">Number of Questions:</label>
+                        <input type="number" id="No_of_Questions" name="No_of_Questions" class="form-control" value="10" required>
+                    </div>
+
+                    <!-- Duration (Minutes) -->
+                    <div class="form-group">
+                        <label for="duration">Duration (minutes):</label>
+                        <input type="number" id="duration" name="duration" class="form-control" value="60" required>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" class="btn btn-primary btn-block">Create Quiz Name</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Initialize CKEditor for quizname field
+    CKEDITOR.replace('quizname');
+</script>
+
+</body>
+</html>
+
+{% endblock content %}

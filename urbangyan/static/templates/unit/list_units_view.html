@@ -1,10 +1,75 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends "base.html" %}
 
-</body>
-</html>
+{% block content %}
+<div class="container mt-4">
+    <a href="/units/create/" class="btn btn-success">Add new Unit</a>
+    <h3>Units List</h3>
+    <!-- Search Container -->
+    <div class="mb-3">
+        <input type="text" id="search" class="form-control" placeholder="Search Units" onkeyup="filterUnits()">
+    </div>
+
+    <table class="table table-bordered" style="background-color: #f0f8ff;"> <!-- Light blue background for the table -->
+        <thead style="background-color: #f8d8c0;"> <!-- Light orange header -->
+            <tr>
+                <th>Subject</th>
+                <th>Unit Title</th>
+                <th>Description</th>
+                <th>Table of Contents</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="unitTableBody">
+            {% for unit in units %}
+                <tr>
+                    <td>{{ unit.subject.name }}</td>
+                    <td>{{ unit.title }}</td>
+                    <td>{{ unit.description|truncatewords:10 }}</td>
+                    <td>{{ unit.table_of_contents|truncatewords:10 }}</td>
+                    <td>
+                        {% if user.is_authenticated %}
+                            {% if user.is_staff %}
+                                <a href="{% url 'unit-update-template' unit.pk %}" class="btn btn-warning btn-sm">Update</a>
+                            {% endif %}
+                            {% if user.is_superuser %}
+                                <a href="{% url 'unit-delete-template' unit.pk %}" class="btn btn-danger btn-sm">Delete</a>
+                            {% endif %}
+                        {% endif %}
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center">No units found.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% include 'footer.html' %}
+
+<script>
+    function filterUnits() {
+        const input = document.getElementById('search');
+        const filter = input.value.toLowerCase();
+        const table = document.getElementById('unitTableBody');
+        const rows = table.getElementsByTagName('tr');
+
+        for (let i = 0; i < rows.length; i++) {
+            const cols = rows[i].getElementsByTagName('td');
+            let rowVisible = false;
+            for (let j = 0; j < cols.length; j++) {
+                if (cols[j]) {
+                    const txtValue = cols[j].textContent || cols[j].innerText;
+                    if (txtValue.toLowerCase().indexOf(filter) > -1) {
+                        rowVisible = true;
+                        break;
+                    }
+                }
+            }
+            rows[i].style.display = rowVisible ? "" : "none"; // Show or hide row
+        }
+    }
+</script>
+
+{% endblock content %}

@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'core',
     'rest_framework',
     'drf_yasg',
+    'crispy_forms',
     'rest_framework_simplejwt',
     'debug_toolbar',
     'ckeditor',
@@ -141,7 +142,8 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  # Directory for uploaded media
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
+JWT_SECRET_KEY = 'MNBVCXZQWRY123POIU!@#'  # Your secret key to encode the JWT
+JWT_ALGORITHM = 'HS256'  # The algorithm to use for signing the token
 # REST Framework settings
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -208,10 +210,10 @@ LOGGING = {
         'file': {
             'level': 'DEBUG',
             'class': 'logging.handlers.TimedRotatingFileHandler',
-            'filename': os.path.join(log_dir, 'debug.log'),
+            'filename': os.path.join(log_dir, 'debug2.log'),
             'when': 'midnight',  # Rotate at midnight each day
             'interval': 1,
-            'backupCount': 5,  # Keep up to 5 backup log files
+            'backupCount': 10,  # Keep up to 5 backup log files
             'formatter': 'verbose',
             'encoding': 'utf-8',
         },

@@ -17,7 +17,7 @@ from .views import (
     update_quizname, delete_quizname, topic_user, SubjectViewSet, UnitViewSet, OfferCreateAPIView, OfferUpdateAPIView,
     OfferDeleteAPIView, OfferManagement, get_units, MockTestViewSet, MockTestListView,
     MockTestCreateView, MockTestUpdateView, MockTestDeleteView, MockTest_user, test_submit,
-    mocktest_detailview
+    mocktest_detailview, test_result, register_user, login_view
 )
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
@@ -58,7 +58,7 @@ urlpatterns = [
 
     # Home view
     path('', dashboard_view, name='dashboard'),
-    path('login/', login, name='login'),
+    path('login/', login_view, name='login'),
     path('logout/', logout, name='logout'),
     #path('ckeditor/', include('ckeditor_uploader.urls')),
 
@@ -95,9 +95,10 @@ urlpatterns = [
     path('blogs/<int:pk>/', views.retrieve_blog_view, name='blog-detail-template'),
     path('blogs/<int:blog_id>/like/', views.like_blog, name='like-blog'),  # Add this URL for liking a blog
     path('blogs/<int:blog_id>/comment/', views.comment_blog, name='comment-blog'),  # Add this URL for commenting on a blog
+    #path('blogs/<int:blog_pk>/comment/<int:comment_pk>/reply/', views.reply_comment, name='reply-comment'),
 
     # User management URLs
-    path('create_user/', TemplateView.as_view(template_name='create_user.html'), name='create_user'),
+    path('create_user/', register_user, name='create_user'),
     path('update_user/', TemplateView.as_view(template_name='update_user.html'), name='update_user'),
     path('delete_user/', TemplateView.as_view(template_name='delete_user.html'), name='delete_user'),
 
@@ -106,9 +107,9 @@ urlpatterns = [
     path('questions/create/', views.create_question_view, name='question-create-template'),
     path('questions/<int:pk>/update/', views.update_question_view, name='question-update-template'),
     path('questions/<int:pk>/delete/', views.delete_question_view, name='question-delete-template'),
-    path('questions_view/', views.list_questions_view, name='questions-list-template'),
+    #path('questions_view/', views.list_questions_view, name='questions-list-template'),
 
-    # Quiz list and detail views
+    # quiz list and detail views
     path('questions_view/<int:quizname_id>/', views.questions_view, name='questions_view'),
     # View to display the quiz and questions
     path('questions_view/<int:quizname_id>/submit/', views.questions_submit, name='questions_submit'),
@@ -124,7 +125,7 @@ urlpatterns = [
     path('quizzes/create/', views.create_quiz_view, name='quiz-create-template'),
     path('quizzes/<int:pk>/update/', views.update_quiz_view, name='quiz-update-template'),
     path('quizzes/<int:pk>/delete/', views.delete_quiz_view, name='quiz-delete-template'),
-    #path('quiz_view/<int:quiz_id>/', views.quiz_view, name='quiz_view'),
+
 
     # quizname urls URLs
     path('quizname_user/<int:quiz_id>/', views.quizname_user, name='quizname_user'),
@@ -153,6 +154,8 @@ urlpatterns = [
     path('subjects/create/', views.create_subject_view, name='subject-create-template'),
     path('subjects/<int:pk>/update/', views.update_subject_view, name='subject-update-template'),
     path('subjects/<int:pk>/delete/', views.delete_subject_view, name='subject-delete-template'),
+    path('subjects_user/', views.subject_list, name='subject-list'),
+    path('subjects/<int:pk>/', views.subject_detail, name='subject-detail'),
 
     # Unit URLs (for templates)
     path('units/', views.list_units_view, name='unit-list-template'),
@@ -167,16 +170,21 @@ urlpatterns = [
     path('api/offers/<int:pk>/update/', OfferUpdateAPIView.as_view(), name='offer-update-api'),
     path('api/offers/<int:pk>/delete/', OfferDeleteAPIView.as_view(), name='offer-delete-api'),
 
+    # MockTest views
     path('mocktest/', MockTestListView.as_view(), name='mocktest-list'),
-    path('mocktest_user/', views.MockTest_user, name='mocktest-user'),
-    path('mock-test/<int:mocktest_id>/', mocktest_detailview, name='mocktest_question_detail'),
-    #path('mock-test/<int:pk>/', views.MockTestDetailView.as_view(), name='mock_test_detail'),
-    #path('mock-test/<int:pk>/start/', views.mocktest_view, name='start_mock_test'),
-    path('mock-test/<int:mocktest_id>/submit/', test_submit, name='mocktest_submit'),
-    #path('mocktest/<int:pk>/load-questions/<int:subject_id>/', LoadQuestionsBySubject.as_view(), name='load-questions-by-subject'),
     path('mocktest/new/', MockTestCreateView.as_view(), name='mocktest-create'),
     path('mocktest/<int:pk>/update/', MockTestUpdateView.as_view(), name='mocktest-update'),
     path('mocktest/<int:pk>/delete/', MockTestDeleteView.as_view(), name='mocktest-delete'),
+
+    # User-specific MockTest views
+    path('mocktest_user/', MockTest_user, name='mocktest-user'),
+    path('mocktest/<int:mocktest_id>/instructions/', views.instructions_view, name='mocktest_instructions'),
+    path('mock-test/<int:mocktest_id>/questions/', mocktest_detailview, name='mocktest_question_detail'),
+
+    # Submission and results
+    path('mock-test/<int:mocktest_id>/submit/', test_submit, name='mocktest_submit'),
+    path('mock-test/<int:mocktest_id>/result/<uuid:submission_uuid>/', views.test_result, name='mocktest_result'),
+
 
 ]
 

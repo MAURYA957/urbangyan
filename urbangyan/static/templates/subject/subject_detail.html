@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <!-- Sidebar with Units and Topics -->
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-header text-white" style="background: linear-gradient(90deg, #4caf50, #8bc34a);">
+                    <h5 class="m-0">Units and Topics</h5>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group">
+                        {% for unit in units %}
+                            <li class="list-group-item bg-light">
+                                <strong class="text-success">{{ unit.title }}</strong>
+                                <ul class="list-unstyled mt-2 ms-3">
+                                    {% for topic in unit.topics.all %}
+                                        <li>
+                                            <a href="?topic_id={{ topic.id }}"
+                                               class="d-block {% if selected_topic and selected_topic.id == topic.id %}text-primary fw-bold{% else %}text-dark{% endif %}">
+                                                <i class="fas fa-chevron-right me-2"></i>{{ topic.topic }}
+                                            </a>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="col-md-9">
+            {% if selected_topic %}
+                <div class="card shadow">
+                    <div class="card-header text-white" style="background: linear-gradient(90deg, #ff5722, #ff9800);">
+                        <h3 class="m-0">{{ selected_topic.topic }}</h3>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">{{ selected_topic.description|safe }}</p>
+
+                        {% if selected_topic.image %}
+                            <div class="text-center my-3">
+                                <img src="{{ selected_topic.image.url }}" alt="{{ selected_topic.topic }}" class="img-fluid rounded shadow">
+                            </div>
+                        {% endif %}
+
+                        {% if selected_topic.file %}
+                            <a href="{{ selected_topic.file.url }}" class="btn btn-primary mt-3" target="_blank">
+                                <i class="fas fa-download me-2"></i>Download File
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            {% else %}
+                <div class="alert alert-info text-center">
+                    <h5>Select a topic from the sidebar to view its details.</h5>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+<style>
+    /* Sidebar Styling */
+    .list-group-item {
+        border: none; /* Remove default borders */
+        padding: 10px 15px;
+        transition: background-color 0.3s ease;
+    }
+    .list-group-item:hover {
+        background-color: #f1f8e9; /* Soft green highlight */
+    }
+    .list-group-item a {
+        text-decoration: none;
+    }
+
+    /* Sidebar Active Link */
+    .list-group-item a.text-primary {
+        color: #ff5722 !important; /* Highlight active topic */
+    }
+
+    /* Main Content Styling */
+    .card-header {
+        font-weight: bold;
+        border-radius: 5px 5px 0 0; /* Rounded top corners */
+    }
+
+    .card-body {
+        font-size: 1rem;
+        line-height: 1.6;
+    }
+
+    /* Button Enhancements */
+    .btn-primary {
+        background: linear-gradient(90deg, #2196f3, #42a5f5);
+        border: none;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .btn-primary:hover {
+        background: linear-gradient(90deg, #1e88e5, #1976d2);
+    }
+
+    /* Image Styling */
+    .img-fluid {
+        max-height: 400px;
+        object-fit: cover;
+    }
+</style>

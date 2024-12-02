@@ -27,3 +27,6 @@ concurrent-log-handler>=0.9,<1.0
 
 # CKEditor integration for rich text editing in Django
 django-ckeditor>=6.0,<7.0
+
+ pip install django-crispy-forms
+pip install beautifulsoup4 lxml

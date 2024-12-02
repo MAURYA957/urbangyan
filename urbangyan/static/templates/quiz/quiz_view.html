@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Title with light orange background and rounded edges -->
+    <h1 class="text-center text-dark py-3 mb-4" style="background-color: #f8d8c0; border-radius: 10px;">
+        📝 Quizzes List
+    </h1>
+
+    <!-- Row of quizzes -->
+    <div class="row">
+        {% for quiz in quizzes %}
+            <div class="col-md-3 col-sm-6 mb-4"> <!-- Responsive column layout -->
+                <div class="card shadow-sm h-100" style="background-color: #f0f8ff; border: none; border-radius: 10px;"> <!-- Light blue card with shadow -->
+                    <div class="card-body text-center">
+                        <!-- quiz Title -->
+                        <h4 class="card-title text-primary font-weight-bold">{{ quiz.subject }}</h4>
+                        <h6 class="card-title text-primary font-weight-bold">{{ quiz.quiz }}</h6>
+
+                        <!-- Go to quiz Button -->
+                        <a href="{% url 'quizname_user' quiz.pk %}" class="btn btn-info w-100 py-2">📘 Go to Quiz</a>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% endblock content %}
+
+<style>
+    /* Light orange background for the title container */
+    h1 {
+        color: #4a4a4a;
+        font-family: "Arial", sans-serif;
+    }
+    /* Cards */
+    .card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .card:hover {
+        transform: scale(1.05);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+    /* Buttons */
+    .btn-info {
+        background-color: #17a2b8;
+        border: none;
+    }
+    .btn-info:hover {
+        background-color: #138496;
+        color: white;
+    }
+</style>

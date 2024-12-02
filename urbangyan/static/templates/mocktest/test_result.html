@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-4">
+    <h2 class="text-center mb-4 animated fadeInDown">
+        Test Results for <strong>"{{ mocktest.Exam_Name }}"</strong>
+    </h2>
+
+    <!-- Progress Bar -->
+    <div class="progress mb-4 animated fadeIn">
+        <div class="progress-bar bg-success" role="progressbar"
+             style="width: {{ score|floatformat:0 }}%;"
+             aria-valuenow="{{ score }}"
+             aria-valuemin="0"
+             aria-valuemax="{{ mocktest.total_max_score }}">
+            {{ score }} / {{ mocktest.total_max_score }} Points
+        </div>
+    </div>
+
+    <!-- Score and Badge Section -->
+    <div class="d-flex justify-content-center mb-4 animated zoomIn">
+        <div class="card p-4 shadow-lg">
+            <h5><strong>Your Score:</strong> {{ score }} / {{ mocktest.total_max_score }}</h5>
+            <h5 style="color: {% if percentage_score < 50 %}red{% else %}green{% endif %};">
+    <strong>Your Score Percentage:</strong> {{ percentage_score }}%
+</h5>
+            <h5><strong>Correct Answers:</strong> {{ correct_count }} / {{ mocktest.total_questions }}</h5>
+                {% if badge_type == 'No Badge' %}
+                    <div class="badge-info mt-3">
+                        <i class="fas fa-medal text-muted fa-2x"></i>
+                        <strong class="ml-2">No badge awarded yet.</strong>
+                        <p>Try again to improve your score and earn a badge!</p>
+                    </div>
+                {% else %}
+                    <div class="badge-info mt-3">
+                        <i class="fas fa-trophy text-success fa-2x"></i>
+                        <strong class="ml-2">Congratulations!</strong>
+                        <p class="mt-2">
+                            You earned the
+                            <span class="badge badge-{{ badge_type|lower }} p-2">
+                            {% if badge_type == "Gold" %}
+                                <i class="fas fa-medal text-warning" style="animation: bounce 2s infinite;"></i>
+                            {% elif badge_type == "Silver" %}
+                                <i class="fas fa-medal text-muted" style="animation: bounce 2s infinite;"></i>
+                            {% elif badge_type == "Bronze" %}
+                                <i class="fas fa-medal text-brown" style="animation: bounce 2s infinite;"></i>
+                            {% endif %}
+                            {{ badge_type }}
+                        </span> Badge.
+                            <br>
+                        </p>
+                    </div>
+                {% endif %}
+
+        </div>
+    </div>
+
+    <!-- Responses Section -->
+    <div class="response-section">
+        <h3 class="mb-3 animated fadeInLeft">Your Responses:</h3>
+        <ul class="list-group">
+            {% for response in responses %}
+                <li class="list-group-item">
+                    <strong>{{ response.question }}</strong><br>
+                    Your Answer:
+                    {% if response.selected_option %}
+                        Option {{ response.selected_option }} and {{ response.answer_description }}
+                        {% if response.is_correct %}
+                            <strong><span class="text-success">(Correct)</span></strong>
+                        {% else %}
+                            <strong><span class="text-danger">(Incorrect)</span></strong>
+                        {% endif %}
+                    {% else %}
+                       <strong><span class="text-warning">Not Attempted</span></strong>
+                    {% endif %}<br>
+                    Correct Answer: Option {{ response.correct_answer }}<br>
+                    Explanation: {{ response.explanation }}
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- Unattempted Questions Section -->
+    {% if unattempted_questions %}
+        <div class="unattempted-section mt-4 animated fadeInRight">
+            <h4 class="text-warning">Unattempted Questions:</h4>
+            <ul class="list-group">
+                {% for question in unattempted_questions %}
+                    <li class="list-group-item animated fadeInUp">
+                        <strong>{{ question.question }}</strong><br>
+                        <span class="text-muted">You did not attempt this question.</span>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    <!-- Buttons Section -->
+    <div class="d-flex justify-content-between mt-4 animated fadeInUp">
+        <a href="/mocktest_user/" class="btn btn-primary btn-lg px-4 py-2" role="button">
+            <i class="fas fa-redo-alt"></i> Retry Test
+        </a>
+        <a href="/" class="btn btn-primary btn-lg px-4 py-2" role="button">
+            <i class="fas fa-home"></i> Go to Home
+        </a>
+    </div>
+</div>
+
+<!-- Custom Animations -->
+<style>
+    .animated {
+        animation-duration: 1s;
+        animation-fill-mode: both;
+    }
+
+    @keyframes fadeInDown {
+        from {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes fadeInLeft {
+        from {
+            opacity: 0;
+            transform: translateX(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    @keyframes fadeInRight {
+        from {
+            opacity: 0;
+            transform: translateX(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    @keyframes zoomIn {
+        from {
+            opacity: 0;
+            transform: scale(0.5);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+
+    .fadeInDown {
+        animation-name: fadeInDown;
+    }
+
+    .fadeIn {
+        animation-name: fadeIn;
+    }
+
+    .fadeInUp {
+        animation-name: fadeInUp;
+    }
+
+    .fadeInLeft {
+        animation-name: fadeInLeft;
+    }
+
+    .fadeInRight {
+        animation-name: fadeInRight;
+    }
+
+    .zoomIn {
+        animation-name: zoomIn;
+    }
+</style>
+{% endblock %}

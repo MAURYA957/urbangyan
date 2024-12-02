@@ -1,33 +1,46 @@
-from django.contrib import messages
-from django.contrib.admin import action
-from django.contrib.auth import get_user_model
-from django.db import transaction
+from django.contrib.auth.hashers import make_password
 from django.http import JsonResponse
-from django.shortcuts import redirect, render
-from django.urls import reverse
-from django.utils.safestring import mark_safe
+from django.db import IntegrityError
+import logging
+
+logger = logging.getLogger(__name__)
+
+from django.urls import reverse_lazy
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET
 from rest_framework import viewsets, generics
-from django.contrib.auth.models import User
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from rest_framework.utils import json
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 import re
-from django.contrib.auth.decorators import login_required
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from rest_framework_simplejwt.views import TokenObtainPairView
-from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
-from .models import Blog, Course, Topic, Quiz, Questions, User, QuizResult, QuizName, UserSession, Comment, Subject, \
-    Unit, Offer, MockTest, MockTestSubjectConfig, UserResponse, Badge
+from rest_framework_simplejwt.tokens import RefreshToken
+from .models import Blog, User, QuizResult, UserSession, Comment, Offer, MockTestSubjectConfig, Quiz, QuizName, Subject
 from django.contrib.auth import authenticate, login as auth_login
+from django.contrib.auth import get_user_model
+import logging
+
+# Set up logging
+logger = logging.getLogger(__name__)
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from .models import Course, Subject
+from .models import Topic, Course, Unit  # Ensure all necessary imports are present
+from django.views.generic import ListView, CreateView, UpdateView, DeleteView
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+import logging
+from django.shortcuts import render, get_object_or_404
+from django.urls import reverse
+from .models import Questions, Badge, MockTest, UserResponse
+import uuid
+from django.shortcuts import redirect
+
+logger = logging.getLogger(__name__)
+User = get_user_model()
 
 import logging
 from .serializers import (
@@ -40,10 +53,6 @@ from .serializers import (
     CustomTokenObtainPairSerializer, UserSessionSerializer, SubjectSerializer, UnitSerializer, OfferSerializer,
     MockTestSerializer
 )
-
-# Initialize the logger
-logger = logging.getLogger(__name__)
-User = get_user_model()
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):
@@ -164,7 +173,7 @@ class QuestionsViewSet(viewsets.ViewSet):
 
 
 class UserViewSet(viewsets.ViewSet):
-    permission_classes = [IsAuthenticated]  # Set default permission class
+    permission_classes = [AllowAny]  # Set default permission class
 
     def list(self, request):
         logger.debug("Listing all users")
@@ -241,6 +250,8 @@ class UserViewSet(viewsets.ViewSet):
 
 logger = logging.getLogger(__name__)
 
+User = get_user_model()
+
 
 class UsernameAvailabilityView(APIView):
     permission_classes = [AllowAny]  # Allows unauthenticated users
@@ -287,6 +298,102 @@ class UsernameAvailabilityView(APIView):
                         status=status.HTTP_400_BAD_REQUEST)
 
 
+def register_user(request):
+    if request.method == 'POST':
+        try:
+            # Get data from the POST request
+            username = request.POST.get('username')
+            first_name = request.POST.get('first_name')
+            middle_name = request.POST.get('middle_name')
+            last_name = request.POST.get('last_name')
+            profile = request.POST.get('profile')
+            email = request.POST.get('email')
+            phone = request.POST.get('phone')
+            address = request.POST.get('address')
+            country = request.POST.get('country')
+            state = request.POST.get('state')
+            city = request.POST.get('city')
+            pin = request.POST.get('pin')
+            password = request.POST.get('password')
+            user_type = request.POST.get('user_type')
+            gender = request.POST.get('gender')
+
+            # Validate required fields
+
+            # Get image from the file upload
+            image = request.FILES.get('image')  # Handle image files from the form
+
+            # Ensure password confirmation matches if applicable
+            # If you have a confirmation password field, ensure it's the same as the original password
+
+            # Hash the password before saving
+            hashed_password = make_password(password)
+
+            try:
+                # Create a new user instance
+                user = User.objects.create_user(
+                    username=username,
+                    first_name=first_name,
+                    middle_name=middle_name,
+                    last_name=last_name,
+                    email=email,
+                    profile=profile,
+                    phone=phone,
+                    address=address,
+                    country=country,
+                    state=state,
+                    city=city,
+                    pin=pin,
+                    password=hashed_password,
+                    user_type=user_type,
+                    gender=gender,
+                    image=image,
+                )
+
+                # Log success
+                logger.info(f"User created successfully: {user.username}")
+                messages.success(request, "User created successfully!")
+
+                return redirect('login')  # Redirect to login page after successful registration
+
+            except IntegrityError:
+                # Handle the case where the username already exists
+                logger.error(f"Username '{username}' already exists.")
+                messages.error(request, "The username is already taken. Please choose a different username.")
+                return redirect('create-user')
+
+        except Exception as e:
+            # Log general errors
+            logger.error(f"Error creating user: {str(e)}")
+            messages.error(request, "An error occurred while creating the user.")
+
+            # Return an error response in case of failure
+            return JsonResponse({"error": str(e)}, status=400)
+
+    else:
+        # Render the user registration page if it's a GET request
+        return render(request, 'create_user.html')
+
+
+def login_view(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+
+        # Authenticate user
+        user = authenticate(request, username=username, password=password)
+
+        if user is not None:
+            auth_login(request, user)
+            # Redirect to a dashboard or home page after login
+            return redirect('dashboard')  # Replace 'dashboard' with your desired redirect view name
+        else:
+            # Add an error message if login fails
+            messages.error(request, 'Invalid username or password.')
+
+    return render(request, 'login.html')  # Render the login form for GET requests
+
+
 class UserSessionListCreateAPIView(generics.ListCreateAPIView):
     queryset = UserSession.objects.all()
     serializer_class = UserSessionSerializer
@@ -313,84 +420,92 @@ class UserSessionDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
 
 
 def list_quizzes_view(request):
-    quizzes = Quiz.objects.all()
-    return render(request, 'quiz_list.html', {'quizzes': quizzes})
+    quizs = Quiz.objects.all()
+    return render(request, 'quiz/quiz_list.html', {'quizs': quizs})
 
 
 def user_quizzes_view(request):
     quizzes = Quiz.objects.all()
-    return render(request, 'quiz_view.html', {'quizzes': quizzes})
+    return render(request, 'quiz/quiz_view.html', {'quizzes': quizzes})
 
 
 @login_required
 def create_quiz_view(request):
-    courses = Course.objects.all()
+    subjects = Subject.objects.all()
 
     if request.method == 'POST':
         quizname = request.POST.get('quizname')
         description = request.POST.get('description')
-        course_id = request.POST.get('course')  # ForeignKey field
-        course = get_object_or_404(Course, pk=course_id)
-        image = request.FILES.get('image')
+        subject_id = request.POST.get('subject')  # ForeignKey field
+        subject = get_object_or_404(Subject, pk=subject_id)
 
-        # Create the Quiz object
+        # Create the quiz object
         Quiz.objects.create(
             quiz=quizname,
             description=description,
-            course=course,
-            image=image
+            subject=subject,
         )
 
         # Add success message
-        messages.success(request, 'Quiz created successfully!')
+        messages.success(request, 'quiz created successfully!')
 
         # Redirect after successful creation
         return redirect(reverse('user_quizzes_view'))
 
-    return render(request, 'create_quiz.html', {'courses': courses})
+    return render(request, 'quiz/create_quiz.html', {'subjects': subjects})
 
+
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib import messages
+from django.urls import reverse
+from .models import Quiz, Subject
 
 @login_required
 def update_quiz_view(request, pk):
+    # Fetch the quiz to update
     quiz = get_object_or_404(Quiz, pk=pk)
-    courses = Course.objects.all()
 
+    # Get all subjects for the dropdown
+    subjects = Subject.objects.all()
+
+    # Handle POST request
     if request.method == 'POST':
+        # Get form data
         quizname = request.POST.get('quizname')
         description = request.POST.get('description')
-        course_id = request.POST.get('course')
-        course = get_object_or_404(Course, pk=course_id)
+        subject_id = request.POST.get('subject')  # Subject field from the form
+        subject = get_object_or_404(Subject, pk=subject_id)  # Fetch the subject by ID
 
-        if 'image' in request.FILES:
-            quiz.image = request.FILES['image']  # Update the image if a new one is uploaded
-
+        # Update the quiz object with the form data
         quiz.quiz = quizname
         quiz.description = description
-        quiz.course = course
+        quiz.subject = subject
+
+       # Save the updated quiz
         quiz.save()
 
-        # Add success message
+        # Success message
         messages.success(request, 'Quiz updated successfully!')
 
         # Redirect after successful update
-        return redirect(reverse('quiz-list-template'))
+        return redirect(reverse('quiz-list-template'))  # Adjust 'quiz-list-template' to your actual URL name
 
-    return render(request, 'update_quiz.html', {'quiz': quiz, 'courses': courses})
+    # Render the update quiz form with the quiz and subjects context
+    return render(request, 'quiz/update_quiz.html', {'quiz': quiz, 'subjects': subjects})
+
 
 
 @login_required
 def delete_quiz_view(request, pk):
     quiz = get_object_or_404(Quiz, pk=pk)
+
     if request.method == 'POST':
+        # Confirm deletion of the quiz
         quiz.delete()
-        return redirect(reverse('quiz-list-template'))
-    return render(request, 'delete_quiz.html', {'quiz': quiz})
+        messages.success(request, 'Quiz deleted successfully!')
+        return redirect('quiz-list-template')  # Adjust URL name as needed
 
-
-# Assuming you're using a custom User model
-from django.contrib.auth import get_user_model
-
-User = get_user_model()
+    return render(request, 'quiz/delete_quiz.html', {'quiz': quiz})
 
 
 class CourseViewSet(viewsets.ModelViewSet):
@@ -457,78 +572,6 @@ class TopicViewSet(viewsets.ModelViewSet):
                         status=status.HTTP_403_FORBIDDEN)
 
 
-"""
-@login_required
-def course_management_view(request, pk=None):
-    try:
-        if pk:  # If pk is provided, we're updating or deleting
-            course = get_object_or_404(Course, pk=pk)
-
-            # Check permissions
-            if request.user != course.staff and not request.user.is_staff:
-                messages.error(request, 'You do not have permission to modify this course.')
-                return redirect(reverse('course-list-template'))
-
-            if request.method == 'POST':
-                if 'delete' in request.POST:  # Handle delete
-                    logger.info("User %s deleting course: %s", request.user.username, course.title)
-                    course.delete()
-                    messages.success(request, 'Course deleted successfully!')
-                    return redirect(reverse('course-list-template'))
-
-                # Handle update
-                logger.info("User %s updating course: %s", request.user.username, course.title)
-                course.title = request.POST.get('title')
-                course.description = request.POST.get('description')
-                course.image = request.FILES.get('image', course.image)  # Keep old image if none provided
-                course.price = request.POST.get('price')
-                subjects_ids = request.POST.getlist('subjects')
-                course.subjects.set(subjects_ids)
-                course.save()
-                messages.success(request, 'Course updated successfully!')
-                return redirect(reverse('course-list-template'))
-
-        else:  # Creating a new course
-            if request.method == 'POST':
-                logger.info("Course creation started by user: %s", request.user.username)
-                title = request.POST.get('title')
-                description = request.POST.get('description')
-                image = request.FILES.get('image')
-                price = request.POST.get('price')
-                subjects_ids = request.POST.getlist('subjects')
-
-                logger.debug(f"Form data retrieved - Title: {title}, Price: {price}, Subjects: {subjects_ids}")
-
-                course = Course.objects.create(
-                    title=title,
-                    description=description,
-                    image=image,
-                    price=price,
-                    staff=request.user
-                )
-                course.subjects.set(subjects_ids)
-                logger.info("Course created: %s", course.title)
-                messages.success(request, 'Course created successfully!')
-                return redirect(reverse('course-user-template'))
-
-        # Render form for both create and update
-        subjects = Subject.objects.all()
-        context = {
-            'course': course if pk else None,
-            'subjects': subjects,
-            'is_update': pk is not None  # Flag to check if we're in update mode
-        }
-        return render(request, 'course_management.html', context)
-
-    except Exception as e:
-        logger.error("Error during course management: %s", str(e))
-        messages.error(request, 'An error occurred while processing your request.')
-        return redirect(reverse('blogs-list-template'))
-
-
-"""
-
-
 @login_required
 def create_course_view(request):
     try:
@@ -570,7 +613,7 @@ def create_course_view(request):
         # Step 6: Render the form if GET request
         subjects = Subject.objects.all()
         logger.info("Course creation form rendered.")
-        return render(request, 'create_course.html', {'subjects': subjects})
+        return render(request, 'courses/create_course.html', {'subjects': subjects})
 
     except Exception as e:
         # Step 7: Handle any errors and log them
@@ -619,7 +662,7 @@ def update_course_view(request, pk):
         # Step 3: Render form for GET request
         subjects = Subject.objects.all()
         logger.info("Rendering course update form for course: %s", course.title)
-        return render(request, 'update_course.html', {'course': course, 'subjects': subjects})
+        return render(request, 'courses/update_course.html', {'course': course, 'subjects': subjects})
 
     except Exception as e:
         logger.error("Error updating course: %s", str(e))
@@ -648,7 +691,7 @@ def delete_course_view(request, pk):
 
         # Step 3: Render confirmation page for GET request
         logger.info("Rendering delete confirmation for course: %s", course.title)
-        return render(request, 'delete_course.html', {'course': course})
+        return render(request, 'courses/delete_course.html', {'course': course})
 
     except Exception as e:
         logger.error("Error deleting course: %s", str(e))
@@ -724,17 +767,17 @@ class SubjectViewSet(viewsets.ModelViewSet):
 # to be checked followings
 def course_user(request):
     courses = Course.objects.all()
-    return render(request, 'course_user.html', {'courses': courses})
+    return render(request, 'courses/course_user.html', {'courses': courses})
 
 
 def list_courses_view(request):
     courses = Course.objects.all()
-    return render(request, 'course_list.html', {'courses': courses})
+    return render(request, 'courses/course_list.html', {'courses': courses})
 
 
 def list_topics_view(request):
     topics = Topic.objects.all()
-    return render(request, 'list_topics_view.html', {'topics': topics})
+    return render(request, 'topic/topic_list.html', {'topics': topics})
 
 
 def list_subjects_view(request):
@@ -743,27 +786,27 @@ def list_subjects_view(request):
 
 
 def list_units_view(request):
-    units = Unit.object.all()
+    units = Unit.objects.all()
     return render(request, 'unit/list_units_view.html', {'units': units})
 
 
 @login_required
 def list_questions_view(request):
     questions = Questions.objects.all()
-    return render(request, 'questions_list.html', {'questions': questions})
+    return render(request, 'question/questions_list.html', {'questions': questions})
 
 
 def quizname_user(request, quiz_id):
     quiz = get_object_or_404(Quiz, id=quiz_id)  # Fetch the quiz object or return 404 if not found
     quiznames = QuizName.objects.filter(quiz=quiz)  # Filter QuizName objects by the fetched quiz
-    return render(request, 'quizname_user.html',
+    return render(request, 'quizname/quizname_user.html',
                   {'quiznames': quiznames})  # Pass filtered QuizName objects to the template
 
 
 @login_required
 def quiznamelist(request):
     quiznames = QuizName.objects.all()  # Changed variable name to plural for clarity
-    return render(request, 'quiznamelist.html', {'quiznames': quiznames})  # Updated context variable to plural
+    return render(request, 'quizname/quiznamelist.html', {'quiznames': quiznames})  # Updated context variable to plural
 
 
 @require_GET
@@ -780,53 +823,59 @@ def create_quizename_view(request):
         quizname_text = request.POST.get('quizname')  # Get the quiz name from the POST request
         quiz_id = request.POST.get('quiz')  # Get the selected quiz ID from the POST request
 
-        quiz = get_object_or_404(Quiz, pk=quiz_id)  # Use Quiz model here
+        # Get the quiz instance from the database using the quiz_id
+        quiz = get_object_or_404(Quiz, pk=quiz_id)
 
         # Create a new QuizName instance
         QuizName.objects.create(
-            quiz=quiz,  # Use the Quiz instance
+            quiz=quiz,  # Link to the selected quiz
             quizname=quizname_text,  # Assign the quiz name
+            No_of_Questions=request.POST.get('No_of_Questions', 10),  # Default to 10 if not provided
+            duration=request.POST.get('duration', 60)  # Default to 60 minutes if not provided
         )
-        return redirect(reverse('quizlistview'))  # Redirect to the quiz name list view
 
-    quizzes = Quiz.objects.all()  # Get all quizzes for selection
-    return render(request, 'create_quizname.html', {'quizzes': quizzes})  # Pass quizzes to the template
+        # Redirect to the list view after creating the quiz name
+        return redirect(reverse('quizlistview'))
+
+    # Get all quizzes to populate the quiz dropdown in the form
+    quizzes = Quiz.objects.all()
+
+    # Render the template and pass the quizzes to it
+    return render(request, 'quizname/create_quizname.html', {'quizzes': quizzes})
 
 
 @login_required
 def update_quizname(request, pk):
     quizname = get_object_or_404(QuizName, pk=pk)
-    quiz = Quiz.objects.filter(quiz=quizname.quiz).all()  # Adjust to reference the quiz associated with the quizname
+    quizzes = Quiz.objects.all()  # Fetch all quizzes, not just those related to this quizname
 
     if request.method == 'POST':
-        quizname.quizname = request.POST.get('quizname')  # Correct reference to the quizname object
-        for q in quiz:  # Loop through all quizzes related to this quizname
-            q.quiz = request.POST.get('quiz')  # Ensure you correctly update the quiz
-            q.save()  # Save each quiz object
-        quizname.save()  # Save the quizname object
+        # Update the quizname (the name of the quiz)
+        quizname.quizname = request.POST.get('quizname')
+        quizname.No_of_Questions = request.POST.get('No_of_Questions', quizname.No_of_Questions)  # Optional field
+        quizname.duration = request.POST.get('duration', quizname.duration)  # Optional field
+
+        # If a new quiz is selected
+        new_quiz_id = request.POST.get('quiz')
+        if new_quiz_id:
+            quizname.quiz = get_object_or_404(Quiz, pk=new_quiz_id)  # Update associated quiz
+
+        quizname.save()  # Save updated quizname
+
+        # Redirect to the quiz list view after update
         return redirect(reverse('quizlistview'))
 
-    return render(request, 'update_quizname.html',
-                  {'quizname': quizname, 'quizzes': quiz})  # Pass quizzes to the template
-
+    return render(request, 'quizname/update_quizname.html', {'quizname': quizname, 'quizzes': quizzes})
 
 @login_required
 def delete_quizname(request, pk):
     quizname = get_object_or_404(QuizName, pk=pk)
 
     if request.method == 'POST':
-        quizname.delete()
-        return redirect(reverse('quizlistview'))
+        quizname.delete()  # Delete the quizname object from the database
+        return redirect(reverse('quizlistview'))  # Redirect after deletion
 
-    return render(request, 'delete_quizname.html', {'quizname': quizname})
-
-
-import logging
-from django.contrib.auth.decorators import login_required
-from .models import Questions, Quiz, QuizName, Subject
-
-# Set up logging
-logger = logging.getLogger(__name__)
+    return render(request, 'quizname/delete_quizname.html', {'quizname': quizname})
 
 
 @login_required
@@ -838,7 +887,7 @@ def create_question_view(request):
             subject_id = request.POST.get('subject')  # Get the selected subject ID from the POST request
             question_level = request.POST.get('question_level')  # Get the selected question level from the POST request
 
-            quiz = get_object_or_404(Quiz, pk=quiz_id)  # Get the selected Quiz instance
+            quiz = get_object_or_404(Quiz, pk=quiz_id)  # Get the selected quiz instance
             quizname = get_object_or_404(QuizName, pk=quizname_id)  # Get the selected QuizName instance
             subject = get_object_or_404(Subject, pk=subject_id)  # Get the selected Subject instance
 
@@ -880,7 +929,7 @@ def create_question_view(request):
     quiznames = QuizName.objects.all()
     subjects = Subject.objects.all()
 
-    return render(request, 'create_question.html', {
+    return render(request, 'question/create_question.html', {
         'quizzes': quizzes,
         'quiznames': quiznames,
         'subjects': subjects,
@@ -913,7 +962,7 @@ def update_question_view(request, pk):
 
         return redirect(reverse('questions-list-template'))
 
-    return render(request, 'update_question.html', {
+    return render(request, 'question/update_question.html', {
         'question': question,
         'quiznames': quiznames,
         'subjects': subjects,  # Pass subjects to the template for the dropdown
@@ -929,28 +978,24 @@ def delete_question_view(request, pk):
         messages.success(request, "Question deleted successfully!")  # Add success message
         return redirect(reverse('questions-list-template'))
 
-    return render(request, 'delete_question.html', {'question': question})
+    return render(request, 'question/delete_question.html', {'question': question})
 
 
 def get_units(request, subject_id):
     try:
-        units = Unit.objects.filter(subject_id=subject_id)  # Adjust filter according to your models
-        unit_data = [{'id': unit.pk, 'name': unit.name} for unit in units]
-        return JsonResponse({'units': unit_data})
+        # Fetch units related to the provided subject ID
+        units = Unit.objects.filter(subject_id=subject_id).values('id', 'title')
+        return JsonResponse({'units': list(units)}, status=200)
     except Exception as e:
-        # Handle potential errors, like logging
-        return JsonResponse({'error': str(e)}, status=500)
+        return JsonResponse({'error': 'Error loading units'}, status=500)
 
 
+
+from django.db import transaction
 import logging
-from django.contrib import messages
-from django.shortcuts import redirect
-from django.contrib.auth.decorators import login_required
-from .models import Topic, Course, Unit  # Ensure all necessary imports are present
 
-# Set up a logger
+# Initialize logger
 logger = logging.getLogger(__name__)
-
 
 @login_required
 def create_topic_view(request):
@@ -958,77 +1003,121 @@ def create_topic_view(request):
         topic_name = request.POST.get('topic')
         description = request.POST.get('description')
         image = request.FILES.get('image')
-        course_id = request.POST.get('course')  # Get the selected course ID
-        subject_id = request.POST.get('subject')  # Get the selected subject ID
-        unit_id = request.POST.get('unit')  # Get the selected unit ID
-
-        # Get the Course object; this will raise a 404 error if not found
-        course = get_object_or_404(Course, pk=course_id)
-
-        # Get the Subject and Unit objects; these will raise a 404 error if not found
-        subject = get_object_or_404(Subject, pk=subject_id) if subject_id else None
-        unit = get_object_or_404(Unit, pk=unit_id) if unit_id else None
+        subject_id = request.POST.get('subject')
+        unit_id = request.POST.get('unit')
 
         try:
-            # Create a new Topic instance
-            Topic.objects.create(
-                topic=topic_name,
-                description=description,
-                image=image,
-                staff=request.user,  # Set the staff as the current user
-                course=course,
-                subject=subject,  # Associate the subject if provided
-                unit=unit  # Associate the unit if provided
-            )
-            # Log a success message
+            # Fetch the course (required)
+
+            # Fetch subject and unit (optional)
+            subject = get_object_or_404(Subject, pk=subject_id) if subject_id else None
+            unit = get_object_or_404(Unit, pk=unit_id) if unit_id else None
+
+            with transaction.atomic():
+                # Create the topic
+                Topic.objects.create(
+                    topic=topic_name,
+                    description=description,
+                    image=image,
+                    staff=request.user,  # Set the staff as the current user
+                    subject=subject,
+                    unit=unit
+                )
+
+            # Log and notify success
             logger.info(f"Topic '{topic_name}' created successfully by {request.user.username}.")
             messages.success(request, "Topic created successfully.")
-            return redirect(reverse('topic-list-template'))
+            return redirect(reverse('topic-list-template'))  # Redirect to topic list
+
         except Exception as e:
-            # Log the error
-            logger.error(f"Error creating topic '{topic_name}': {str(e)}")
-            messages.error(request, "There was an error creating the topic. Please try again.")
+            # Log error details
+            logger.error(f"Error creating topic '{topic_name}' by {request.user.username}: {e}")
+            messages.error(request, "An error occurred while creating the topic. Please try again.")
 
-    # Pass courses, subjects, and units for selection in the form
-    courses = Course.objects.all()
-    subjects = Subject.objects.all()  # Retrieve all subjects for selection
-    units = Unit.objects.all()  # Retrieve all units for selection
+    # Handle GET request: Pass available courses, subjects, and units to the form
+    subjects = Subject.objects.all()
+    units = Unit.objects.all()
 
-    return render(request, 'create_topic.html', {
-        'courses': courses,
+    return render(request, 'topic/create_topic.html', {
         'subjects': subjects,
-        'units': units
+        'units': units,
     })
+
 
 
 # Set up a logger
 logger = logging.getLogger(__name__)
 
+from django.shortcuts import get_object_or_404, render, redirect
+from django.contrib import messages
+from django.urls import reverse
+from .models import Topic, Unit, Subject
+from django.contrib.auth.decorators import login_required
+
 
 @login_required
 def update_topic_view(request, pk):
+    # Fetch the topic or return a 404 if not found
     topic = get_object_or_404(Topic, pk=pk)
 
-    # Check for permission
+    # Check if the user has permission to update the topic
     if request.user != topic.staff and not request.user.is_staff:
         messages.error(request, 'You do not have permission to update this topic.')
         return redirect(reverse('topic-list-template'))
 
     if request.method == 'POST':
-        topic.topic = request.POST.get('topic')
-        topic.description = request.POST.get('description')
+        # Fetch input data
+        topic_name = request.POST.get('topic')
+        description = request.POST.get('description')
         new_image = request.FILES.get('image')
+        subject_id = request.POST.get('subject')
+        unit_id = request.POST.get('unit')
 
-        # Keep the old image if no new one is provided
+        # Validate required fields
+        if not topic_name or not description:
+            messages.error(request, "Topic name and description are required.")
+            return render(request, 'topic/update_topic.html', {'topic': topic})
+
+        # Update the topic fields
+        topic.topic = topic_name
+        topic.description = description
         if new_image:
             topic.image = new_image
 
-        topic.save()
+        # Handle subject and unit relationships
+        try:
+            if subject_id:
+                subject = get_object_or_404(Subject, pk=subject_id)
+                topic.subject = subject  # Update the related subject
+            if unit_id:
+                unit = get_object_or_404(Unit, pk=unit_id)
+                topic.unit = unit  # Update the related unit
+        except Subject.DoesNotExist:
+            messages.error(request, "The selected subject does not exist.")
+        except Unit.DoesNotExist:
+            messages.error(request, "The selected unit does not exist.")
 
-        messages.success(request, "Topic updated successfully.")
-        return redirect(reverse('topic-list-template'))
+        # Save changes to the topic
+        try:
+            topic.save()
+            messages.success(request, "Topic updated successfully.")
+            return redirect(reverse('topic-list-template'))
+        except Exception as e:
+            messages.error(request, f"An error occurred while updating the topic: {e}")
 
-    return render(request, 'update_topic.html', {'topic': topic})
+    # Preload subject and unit options for the update form
+    subjects = Subject.objects.all()
+    units = Unit.objects.filter(subject=topic.subject) if topic.subject else []
+
+    return render(
+        request,
+        'topic/update_topic.html',
+        {
+            'topic': topic,
+            'subjects': subjects,
+            'units': units,
+        }
+    )
 
 
 # Delete Topic
@@ -1046,7 +1135,7 @@ def delete_topic_view(request, pk):
         messages.success(request, "Topic deleted successfully.")
         return redirect(reverse('topic-list-template'))
 
-    return render(request, 'delete_topic.html', {'topic': topic})
+    return render(request, 'topic/delete_topic.html', {'topic': topic})
 
 
 # Similar logic for Unit and Subject follows the same pattern:
@@ -1057,68 +1146,114 @@ def create_unit_view(request):
     if request.method == 'POST':
         title = request.POST.get('title')
         description = request.POST.get('description')
-        image = request.FILES.get('image')
+        table_of_contents= request.FILES.get('image')
+        subject_id = request.POST.get('subject')
 
-        Unit.objects.create(
-            title=title,
-            description=description,
-            image=image,
-            staff=request.user  # Set the staff as the current user
-        )
-        return redirect(reverse('unit-list-template'))
+        # Fetch the subject based on the ID
+        subject = Subject.objects.get(id=subject_id) if subject_id else None
 
-    return render(request, 'unit/create_unit.html')
+        if subject:
+            # Create the Unit object
+            Unit.objects.create(
+                title=title,
+                description=description,
+                table_of_contents=table_of_contents,
+                subject=subject,  # Set the subject from the dropdown
+            )
+            return redirect(reverse('unit-list-template'))
+        else:
+            error = "Please select a valid subject."
+
+            # Pass error message along with the subjects
+            subjects = Subject.objects.all()
+            return render(request, 'unit/create_unit.html', {'subjects': subjects, 'error': error})
+
+    # If GET request, just pass subjects to the template
+    subjects = Subject.objects.all()
+    return render(request, 'unit/create_unit.html', {'subjects': subjects})
 
 
-# Update Unit
+from django.shortcuts import get_object_or_404, render, redirect
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.urls import reverse
+from .models import Unit
+
+
 @login_required
 def update_unit_view(request, pk):
     unit = get_object_or_404(Unit, pk=pk)
-    if request.user != unit.staff and not request.user.is_staff:
-        messages.error(request, 'You do not have permission to update this unit.')
-        return redirect(reverse('unit-list-template'))
+
+    # Fetch all subjects to populate the dropdown
+    subjects = Subject.objects.all()
 
     if request.method == 'POST':
+        # Fetch and update unit fields from the form
+        subject_id = request.POST.get('subject')  # Get subject ID from the form
+        if subject_id:
+            unit.subject = get_object_or_404(Subject, id=subject_id)  # Update subject based on the ID
+
         unit.title = request.POST.get('title')
         unit.description = request.POST.get('description')
-        unit.image = request.FILES.get('image', unit.image)  # Keep the old image if no new one is provided
+        unit.table_of_contents = request.POST.get('table_of_contents')  # Update table of contents if included
+
+        # If an image is uploaded, replace the old one with the new one
+
+
+        # Save the unit with the updated information
         unit.save()
+
+        # Show a success message and redirect to the unit list page
+        messages.success(request, 'Unit updated successfully.')
         return redirect(reverse('unit-list-template'))
 
-    return render(request, 'unit/update_unit.html', {'unit': unit})
-
+    # If GET request, render the unit update form with the current unit data
+    return render(request, 'unit/update_unit.html', {'unit': unit, 'subjects': subjects})
 
 # Delete Unit
 @login_required
 def delete_unit_view(request, pk):
     unit = get_object_or_404(Unit, pk=pk)
-    if request.user != unit.staff and not request.user.is_staff:
-        messages.error(request, 'You do not have permission to delete this unit.')
-        return redirect(reverse('unit-list-template'))
 
     if request.method == 'POST':
+        # If POST request, delete the unit and redirect to the unit list
         unit.delete()
+        messages.success(request, 'Unit deleted successfully.')
         return redirect(reverse('unit-list-template'))
 
-    return render(request, 'delete_unit.html', {'unit': unit})
+    # If GET request, render the confirmation page with the unit to be deleted
+    return render(request, 'unit/delete_unit.html', {'unit': unit})
 
 
 # Create Subject
 @login_required
 def create_subject_view(request):
     if request.method == 'POST':
-        title = request.POST.get('title')
+        # Retrieve form data
+        name = request.POST.get('name')
         description = request.POST.get('description')
         image = request.FILES.get('image')
+        authors = request.POST.get('authors')  # Expecting comma-separated author names
 
+        # Validate required fields
+        if not name or not description:
+            return render(request, 'subject/create_subject.html', {
+                'error': 'Name and description are required fields.',
+                'form_data': request.POST,  # Pass form data back to prefill
+            })
+
+        # Create the Subject instance
         Subject.objects.create(
-            title=title,
+            name=name,
             description=description,
             image=image,
-            staff=request.user  # Set the staff as the current user
+            authors=authors  # Store comma-separated authors
         )
+
+        # Redirect to the subject list page
         return redirect(reverse('subject-list-template'))
 
+    # Render form template
     return render(request, 'subject/create_subject.html')
 
 
@@ -1126,26 +1261,53 @@ def create_subject_view(request):
 @login_required
 def update_subject_view(request, pk):
     subject = get_object_or_404(Subject, pk=pk)
-    if request.user != subject.staff and not request.user.is_staff:
+
+    # Authorization: Ensure only authorized users can update
+    if not request.user.is_staff:
         messages.error(request, 'You do not have permission to update this subject.')
         return redirect(reverse('subject-list-template'))
 
     if request.method == 'POST':
-        subject.title = request.POST.get('title')
-        subject.description = request.POST.get('description')
-        subject.image = request.FILES.get('image', subject.image)  # Keep the old image if no new one is provided
+        name = request.POST.get('name')
+        description = request.POST.get('description')
+        image = request.FILES.get('image')
+
+        # Validate required fields
+        if not name or not description:
+            messages.error(request, 'Name and description are required.')
+            return render(request, 'subject/update_subject.html', {'subject': subject})
+
+        # Update the subject details
+        subject.name = name
+        subject.description = description
+        if image:  # Only update image if a new one is provided
+            subject.image = image
         subject.save()
+
+        messages.success(request, f'Subject "{subject.name}" updated successfully.')
         return redirect(reverse('subject-list-template'))
 
-    return render(request, 'suject/update_subject.html', {'subject': subject})
+    # Render the update form
+    return render(request, 'subject/update_subject.html', {'subject': subject})
 
 
-# Delete Subject
-@login_required
 def delete_subject_view(request, pk):
+    # Get the subject object, or return a 404 if not found
     subject = get_object_or_404(Subject, pk=pk)
-    if request.user != subject.staff and not request.user.is_staff:
-        messages.error
+
+    # Check if the current user is either the staff of the subject or an admin (superuser)
+    if request.user != subject.authors and not request.user.is_staff:
+        messages.error(request, 'You do not have permission to delete this subject.')
+        return redirect('subject-list-template')  # Redirect to subject list if unauthorized
+
+    # If the request method is POST, proceed to delete
+    if request.method == 'POST':
+        subject.delete()
+        messages.success(request, 'Subject deleted successfully.')
+        return redirect('subject-list-template')  # Redirect after deletion
+
+    # Otherwise, show a confirmation page
+    return render(request, 'subject/confirm_delete.html', {'subject': subject})
 
 
 def topic_user(request, course_id=None):
@@ -1163,13 +1325,13 @@ def topic_user(request, course_id=None):
         'topics': topics,  # Change 'topic' to 'topics' for clarity
         'course': course,
     }
-    return render(request, 'topic_user.html', context)
+    return render(request, 'topic/topic_user.html', context)
 
 
 @login_required
 def list_blogs_view(request):
     blogs = Blog.objects.all()
-    return render(request, 'blogs_list.html', {'blogs': blogs})
+    return render(request, 'blog/blogs_list.html', {'blogs': blogs})
 
 
 @login_required
@@ -1191,7 +1353,7 @@ def create_blog_view(request):
 
         return redirect(reverse('blog_user'))  # Redirect to the success page
 
-    return render(request, 'create_blog.html')
+    return render(request, 'blog/create_blog.html')
 
 
 @login_required
@@ -1205,7 +1367,7 @@ def update_blog_view(request, pk):
         blog.save()
         return redirect(reverse('blogs-list-template'))
 
-    return render(request, 'update_blog.html', {'blog': blog})
+    return render(request, 'blog/update_blog.html', {'blog': blog})
 
 
 @login_required
@@ -1214,18 +1376,21 @@ def delete_blog_view(request, pk):
     if request.method == 'POST':
         blog.delete()
         return redirect(reverse('blogs-list-template'))
-    return render(request, 'delete_blog.html', {'blog': blog})
+    return render(request, 'blog/delete_blog.html', {'blog': blog})
 
 
 def Blog_user(request):
     blogs = Blog.objects.all()
-    return render(request, 'blog_user.html', {'blogs': blogs})
+    return render(request, 'blog/blog_user.html', {'blogs': blogs})
 
 
 def retrieve_blog_view(request, pk):
-    blog = get_object_or_404(Blog, pk=pk)
-    return render(request, 'blog_detail.html', {'blog': blog})
-
+    blog = get_object_or_404(Blog, id=pk)
+    comments = blog.comments.all().order_by('-created_at')
+    return render(request, 'blog/blog_detail.html', {
+        'blog': blog,
+        'comments': comments,
+    })
 
 # Like Blog
 def like_blog(request, blog_id):
@@ -1235,13 +1400,19 @@ def like_blog(request, blog_id):
     return redirect(reverse('blog-detail-template', args=[blog_id]))
 
 
-# Comment on Blog
 def comment_blog(request, blog_id):
     blog = get_object_or_404(Blog, id=blog_id)
+
     if request.method == 'POST':
-        content = request.POST.get('comment')
+        content = request.POST.get('content')  # Match field name in form
         if content:
-            Comment.objects.create(blog=blog, content=content, author=request.user)
+            Comment.objects.create(
+                blog=blog,
+                content=content,
+                author=request.user,
+            )
+        return redirect(reverse('blog-detail-template', args=[blog_id]))
+
     return redirect(reverse('blog-detail-template', args=[blog_id]))
 
 
@@ -1360,7 +1531,7 @@ def questions_view(request, quizname_id):
     quizname = get_object_or_404(QuizName, id=quizname_id)  # Get QuizName object
     no_of_questions = quizname.No_of_Questions
     # Fetch 50 random questions from the quizname
-    questions = Questions.objects.filter(quizname=quizname).order_by('?')[:no_of_questions] # Filter by QuizName
+    questions = Questions.objects.filter(quizname=quizname).order_by('?')[:no_of_questions]  # Filter by QuizName
 
     # Pass the quiz duration to the template
     quiz_duration = quizname.duration  # Assuming duration is in minutes
@@ -1368,7 +1539,7 @@ def questions_view(request, quizname_id):
     if request.method == 'POST':
         return questions_submit(request, quizname, questions)
 
-    return render(request, 'questions_view.html', {
+    return render(request, 'question/questions_view.html', {
         'quizname': quizname,
         'questions': questions,
         'quiz_duration': quiz_duration  # Pass duration to template
@@ -1418,7 +1589,7 @@ def questions_submit(request, quizname_id):
             wrong_answers=wrong_answers,
             score=score
         )
-        print("Quiz result saved successfully")
+        print("quiz result saved successfully")
     except Exception as e:
         print(f"Error saving quiz result: {e}")
 
@@ -1431,7 +1602,7 @@ def questions_submit(request, quizname_id):
         'score': score,
     }
 
-    return render(request, 'questions_result.html', {
+    return render(request, 'question/questions_result.html', {
         'quizname': quizname,  # Passing quizname to the template
         'result_summary': result_summary,
     })
@@ -1547,11 +1718,6 @@ def assign_user(self, request, pk=None):
     return Response({'status': 'User assigned'})
 
 
-from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from .models import MockTest
-
-
 class MockTestListView(LoginRequiredMixin, ListView):
     model = MockTest
     template_name = 'mocktest/mocktest_list.html'
@@ -1561,15 +1727,9 @@ class MockTestListView(LoginRequiredMixin, ListView):
         return MockTest.objects.filter(user=self.request.user)
 
 
-from django.urls import reverse_lazy
-from django.views.generic import CreateView
-from django.contrib.auth.mixins import LoginRequiredMixin
-from .models import MockTest, MockTestSubjectConfig, Subject
-
-
 class MockTestCreateView(LoginRequiredMixin, CreateView):
     model = MockTest
-    fields = ['duration']
+    fields = ['duration', 'negative_mark', 'Exam_Name', 'Instructions', 'total_questions', 'total_max_score']
     template_name = 'mocktest/mocktest_form.html'
     success_url = reverse_lazy('mocktest-list')
 
@@ -1586,13 +1746,35 @@ class MockTestCreateView(LoginRequiredMixin, CreateView):
         num_questions = self.request.POST.getlist('num_questions')
         max_scores = self.request.POST.getlist('max_score')
 
+        total_questions = 0
+        total_max_score = 0
+
+        # Create MockTestSubjectConfig entries and calculate totals
         for i in range(len(subjects)):
-            MockTestSubjectConfig.objects.create(
-                mock_test=mock_test,
-                subject_id=subjects[i],
-                num_questions=num_questions[i],
-                max_score=max_scores[i]
-            )
+            subject_id = subjects[i]
+            num_questions_val = num_questions[i]
+            max_score_val = max_scores[i]
+
+            try:
+                subject_config = MockTestSubjectConfig.objects.create(
+                    mock_test=mock_test,
+                    subject_id=subject_id,
+                    num_questions=num_questions_val,
+                    max_score=max_score_val
+                )
+                logger.debug(
+                    f"SubjectConfig created: Subject ID={subject_id}, Questions={num_questions_val}, Max Score={max_score_val}.")
+                total_questions += int(num_questions_val)
+                total_max_score += int(max_score_val)
+            except Exception as e:
+                logger.error(f"Error creating SubjectConfig for Subject ID={subject_id}: {e}")
+
+            # Update totals for the Mock Test
+            mock_test.total_questions = total_questions
+            mock_test.total_max_score = total_max_score
+            mock_test.save(update_fields=['total_questions', 'total_max_score'])
+            logger.info(
+            f"Mock Test '{mock_test.Exam_Name}' updated with totals: Questions={total_questions}, Max Score={total_max_score}.")
 
         return super().form_valid(form)
 
@@ -1625,213 +1807,267 @@ def MockTest_user(request):
     return render(request, 'mocktest/mock_test_user.html', {'mocktests': mocktests})
 
 
-from django.views.generic import DetailView
-from django.contrib.auth.mixins import LoginRequiredMixin
-from .models import MockTest, UserResponse, Badge, Questions, MockTestSubjectConfig
+def instructions_view(request, mocktest_id):
+    mocktest = get_object_or_404(MockTest, id=mocktest_id)
+    return render(request, 'mocktest/instructions.html', {'mocktest': mocktest, 'duration': mocktest.duration})
 
-
-"""class MockTestDetailView(LoginRequiredMixin, DetailView):
-    model = MockTest
-    template_name = 'mocktest/mocktest_detail.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        # Include the subject configuration for each mock test
-        subject_configs = list(self.object.subject_configs.all().values('subject_id', 'num_questions', 'max_score'))
-        context['subject_configs_json'] = json.dumps(subject_configs)  # Pass subject config data as JSON
-        context['instructions'] = self.object.Instructions  # Display instructions
-        return context
-
-import json
-import random
-from django.shortcuts import render, get_object_or_404
-from django.http import JsonResponse
-from django.db import transaction
-from django.views.generic import DetailView
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Sum
-from .models import MockTest, UserResponse, Badge, Questions
-
-class StartMockTestView(LoginRequiredMixin, DetailView):
-    model = MockTest
-    template_name = 'mocktest/start_test.html'
-
-    def get(self, request, *args, **kwargs):
-        mock_test = self.get_object()
-
-        # Populate the test questions when starting the test
-        mock_test.populate_questions()  # This will set questions for the test
-
-        # Prepare context to send to the template
-        context = {
-            'mock_test': mock_test,
-            'instructions': mock_test.Instructions,
-            'duration': mock_test.duration.total_seconds() / 60  # Convert duration to minutes
-        }
-        return render(request, self.template_name, context)
-
-    def populate_questions(self):
-        # Get the subject configurations for the mock test
-        configs = self.subject_configs.all()
-
-        # Calculate total questions and max score by summing the fields from subject_configs
-        self.total_questions = configs.aggregate(total_q=Sum('num_questions'))['total_q'] or 0
-        self.total_max_score = configs.aggregate(total_score=Sum('max_score'))['total_score'] or 0
-
-        selected_questions = []
-
-        # Loop through each subject configuration
-        for config in configs:
-            # Correct the reference to 'Subject' (lowercase 'subject' to match model field)
-            subject_questions = list(Questions.objects.filter(Subject=config.subject))
-
-            # If there are questions for the subject, sample randomly based on the number required
-            if subject_questions:
-                sampled_questions = random.sample(subject_questions, min(len(subject_questions), config.num_questions))
-                selected_questions.extend(sampled_questions)
-
-        # Set the selected questions without saving them to the database
-        self._set_questions(selected_questions)
-
-    def post(self, request, *args, **kwargs):
-        mock_test = self.get_object()
-
-        # Get answers from the POST request (expecting a JSON object)
-        user_answers = json.loads(request.POST.get('answers'))  # Assuming answers are posted as JSON
-
-        correct_count = 0
-
-        # Use atomic block to ensure database integrity
-        with transaction.atomic():
-            for question_id, selected_option in user_answers.items():
-                # Get the question object or raise 404 if not found
-                question = get_object_or_404(Questions, id=question_id)
-
-                # Compare the selected option with the correct answer
-                is_correct = int(selected_option) == question.answer
-                correct_count += 1 if is_correct else 0
-
-                # Save the user response to the database
-                UserResponse.objects.create(
-                    user=request.user,
-                    question=question,
-                    selected_option=selected_option,
-                    is_correct=is_correct,
-                    mock_test=mock_test
-                )
-
-        score = correct_count
-
-        # Award badge based on score
-        self.award_badge(request.user, score, mock_test)
-
-        # Return the score and correct count as a JSON response
-        return JsonResponse({'score': score, 'correct_count': correct_count})
-
-    def award_badge(self, user, score, mock_test):
-        Awards a badge based on the score achieved in the mock test.
-        badge_type = None
-        if score >= 90:
-            badge_type = 'Gold'
-        elif score >= 75:
-            badge_type = 'Silver'
-        elif score >= 50:
-            badge_type = 'Bronze'
-
-        if badge_type:
-            # Create the badge for the user based on their score
-            Badge.objects.create(user=user, mock_test=mock_test, badge_type=badge_type)
-
-"""
-from django.shortcuts import render, get_object_or_404
-from .models import MockTest, Questions, MockTestSubjectConfig
-import random
 
 def mocktest_detailview(request, mocktest_id):
-    mocktest = get_object_or_404(MockTest, id=mocktest_id)  # Get mocktest object
+    logger.debug(f"Fetching MockTest with ID: {mocktest_id}")
+
+    try:
+        # Get MockTest object
+        mocktest = get_object_or_404(MockTest, id=mocktest_id)
+        logger.debug(f"MockTest found: {mocktest}")
+    except Exception as e:
+        logger.error(f"Error fetching MockTest with ID {mocktest_id}: {e}")
+        raise
+
+    # Fetch the test duration
+    test_duration = int(mocktest.duration.total_seconds() // 60)
+    #test_duration = mocktest.duration
+    logger.debug(f"Test duration: {test_duration}")
 
     # Get subject configurations for this mock test
-    subject_configs = mocktest.subject_configs.all()  # Assuming MockTest has related field subject_configs
+    try:
+        subject_configs = mocktest.subject_configs.all()  # Assuming MockTest has related field subject_configs
+        logger.debug(f"Fetched {len(subject_configs)} subject configurations.")
+    except Exception as e:
+        logger.error(f"Error fetching subject configurations: {e}")
+        raise
 
     questions = []
     total_questions = 0
 
     # Loop through each subject configuration and fetch random questions
+    logger.debug(f"Fetching random questions based on subject configurations.")
     for config in subject_configs:
-        # Fetch random questions for each subject based on num_questions
-        subject_questions = Questions.objects.filter(Subject=config.subject).order_by('?')[:config.num_questions]
-        questions.extend(subject_questions)
-        total_questions += config.num_questions
+        try:
+            # Fetch random questions for each subject based on num_questions
+            subject_questions = Questions.objects.filter(Subject=config.subject).order_by('?')[:config.num_questions]
+            logger.debug(f"Fetched {len(subject_questions)} random questions for subject {config.subject}.")
 
-    # Assuming the duration is stored as an integer or a timedelta
-    duration = mocktest.duration  # Assuming duration is in minutes or seconds
+            questions.extend(subject_questions)
+            total_questions += config.num_questions
+        except Exception as e:
+            logger.error(f"Error fetching questions for subject {config.subject}: {e}")
+            continue  # Continue processing other subjects even if one fails
+
+    logger.debug(f"Total questions fetched: {total_questions}")
+
+    # Save the questions in session to be available when submitting
+    logger.debug("Saving questions in session for later use.")
+    request.session["mocktest_questions"] = [{"id": question.id, "question": question.question} for question in
+                                             questions]
 
     if request.method == 'POST':
-        return test_submit(request, mocktest, questions)
+        logger.debug("POST request received, redirecting to test_submit with questions.")
+        return test_submit(request, mocktest, questions)  # Passing questions explicitly
 
+    logger.debug("Rendering mocktest detail view.")
     return render(request, 'mocktest/mocktest_detail.html', {
         'mocktest': mocktest,
         'questions': questions,
-        'duration': duration,
+        'test_duration': test_duration,
         'total_questions': total_questions  # Pass total number of questions to template
     })
 
 
-from django.shortcuts import render, get_object_or_404
-from django.http import JsonResponse
-from django.db import transaction
-from .models import MockTest, Questions, UserResponse, Badge
-import json
+def test_submit(request, mocktest_id):
+    if request.method == "POST":
+        # Retrieve session questions data
+        questions_data = request.session.get("mocktest_questions", [])
+        if not questions_data:
+            logger.error("No question data found in session.")
+            return redirect("mocktest-user")
 
+        # Retrieve mock test instance
+        mocktest = get_object_or_404(MockTest, id=mocktest_id)
+        logger.debug(f"Mock test retrieved: {mocktest.Exam_Name}")
 
-def test_submit(request, mocktest, questions):
-    user_answers = json.loads(request.POST.get('answers'))  # Get answers from the POST request
+        # Generate a unique UUID for this submission
+        submission_uuid = uuid.uuid4()
+        logger.debug(f"Generated submission UUID: {submission_uuid}")
 
-    correct_count = 0
-    score = 0
+        # Process user responses
+        for question_data in questions_data:
+            question_id = question_data.get("id")
+            correct_answer = question_data.get("correct_answer")  # Use .get() to avoid KeyError
+            explanation = question_data.get("explanation")
+            logger.debug(f"Processing question ID: {question_id}")
 
-    # Use atomic block to ensure database integrity when saving user responses
-    with transaction.atomic():
-        for question_id, selected_option in user_answers.items():
-            question = get_object_or_404(Questions, id=question_id)  # Fetch question object
+            if correct_answer is None:
+                # If the correct answer is missing, fetch it from the database
+                question = get_object_or_404(Questions, id=question_id)
+                correct_answer = question.answer
+                logger.debug(f"Fetched correct_answer from the database for question {question.id}")
 
-            # Check if the selected option matches the correct answer
-            is_correct = int(selected_option) == question.answer
-            correct_count += 1 if is_correct else 0
+            explanation = question_data.get("explanation")
+            # Check if correct_answer is missing
+            if correct_answer is None:
+                logger.error(f"Correct answer is missing for question {question_id}. Skipping this question.")
+                continue  # Skip this question if the correct answer is missing
 
-            # Save the user's response to the database
-            UserResponse.objects.create(
+            # Process the response
+            selected_option = int(request.POST.get(f"question_{question_id}", 0))
+            is_correct = selected_option == correct_answer
+            answer_description = question_data.get(f"option_{selected_option}", "Invalid selection.")
+            logger.debug(f"User selected option {selected_option}, is_correct: {is_correct}")
+
+            # Save user response
+            UserResponse.objects.update_or_create(
                 user=request.user,
-                question=question,
-                selected_option=selected_option,
-                is_correct=is_correct,
-                mock_test=mocktest
+                mock_test=mocktest,
+                question_id=question_id,
+                submission_id=submission_uuid,
+                defaults={
+                    "selected_option": selected_option,
+                    "correct_answer": correct_answer,
+                    "is_correct": is_correct,
+                    "answer_description": answer_description,
+                    "explanation": explanation,
+                    "exam_name": mocktest.Exam_Name,
+                },
             )
+            logger.debug(f"Saved response for question ID: {question_id}")
 
-        # Calculate score (you can adjust the calculation based on your requirements)
-        score = correct_count
+        # Clear session questions after submission
+        del request.session["mocktest_questions"]
+        logger.debug("Cleared mocktest_questions from session.")
 
-        # Award the badge based on the score
-        award_badge(request.user, score, mocktest)
+        # Redirect to the results page with the submission UUID
+        logger.debug(f"Redirecting to results page with submission UUID: {submission_uuid}")
+        return redirect("mocktest_result", mocktest_id=mocktest.id, submission_uuid=submission_uuid)
 
-        # Respond with the score and correct count
-        return JsonResponse({
-            'score': score,
-            'correct_count': correct_count,
-            'badge': "Badge awarded based on score"  # Include badge info if needed
-        })
+    # Handle case when method is not POST (should not happen in this flow)
+    logger.error("Request method is not POST.")
+    return redirect("mocktest-user")
 
 
-def award_badge(user, score, mock_test):
-    """Awards a badge based on the score achieved in the mock test."""
-    badge_type = None
-    if score >= 90:
+def test_result(request, mocktest_id, submission_uuid):
+    # Retrieve mock test instance
+    mocktest = get_object_or_404(MockTest, id=mocktest_id)
+
+    # Fetch user responses linked to the current submission (filtered by submission_id)
+    user_responses = UserResponse.objects.filter(
+        user=request.user,
+        mock_test=mocktest,
+        submission_id=submission_uuid  # Use submission_uuid to filter responses
+    )
+
+    # Attempted responses for score calculation
+    attempted_responses = user_responses.exclude(is_correct=None)
+
+    # Calculate correct and incorrect answers
+    correct_count = attempted_responses.filter(is_correct=True).count()
+    incorrect_count = attempted_responses.filter(is_correct=False).count()
+
+    # Calculate the score by subtracting 1/3 for each incorrect answer
+    score = round((correct_count - mocktest.negative_mark * incorrect_count), 2)
+    percentage_score = round((score / mocktest.total_max_score) * 100, 2) if mocktest.total_max_score > 0 else 0
+    # Determine badge type based on score
+
+    if percentage_score >= 90:
         badge_type = 'Gold'
-    elif score >= 75:
+    elif percentage_score >= 75:
         badge_type = 'Silver'
-    elif score >= 50:
+    elif percentage_score >= 60:
         badge_type = 'Bronze'
+    else:
+        badge_type = 'No Badge'
 
-    if badge_type:
-        # Create the badge for the user based on their score
-        Badge.objects.create(user=user, mock_test=mock_test, badge_type=badge_type)
+    # Identify unattempted questions
+    attempted_ids = user_responses.values_list("question_id", flat=True)
+    unattempted_questions = [
+        q for q in request.session.get("mocktest_questions", [])
+        if q['id'] not in attempted_ids
+    ]
+
+    # Calculate total questions (attempted + unattempted)
+    total_question = len(attempted_responses) + len(unattempted_questions)
+
+    # Save or update user response
+    Badge.objects.update_or_create(
+        user=request.user,
+        submission_id=submission_uuid,
+        mock_test=mocktest,
+        defaults={
+            "score": score,
+            "attempted_question": len(attempted_responses),
+            "total_question": total_question,
+            "Incorrect_question": incorrect_count,
+            "Unattampted_question": len(unattempted_questions),
+            "badge_type": badge_type,
+            "exam_name": mocktest.Exam_Name,
+        },
+    )
+
+    logger.debug(f"Saved response for submission id: {submission_uuid}")
+
+    # Return the results to the template
+    return render(request, "mocktest/test_result.html", {
+        "mocktest": mocktest,
+        "responses": user_responses,
+        "correct_count": correct_count,
+        "unattempted_questions": unattempted_questions,
+        "exam_name": mocktest.Exam_Name,
+        "score": score,
+        "badge_type": badge_type,
+        "percentage_score": percentage_score
+    })
+
+def subject_list(request):
+    """
+    View to display a list of subjects.
+    """
+    subjects = Subject.objects.all()
+    return render(request, 'subject/subject_user.html', {'subjects': subjects})
+
+
+def subject_detail(request, pk):
+    """
+    View to display the details of a subject and its units/topics.
+    """
+    subject = get_object_or_404(Subject, pk=pk)
+    units = subject.units.prefetch_related('topics')  # Fetch units and related topics
+    selected_topic = None
+
+    # Check if a topic is selected
+    topic_id = request.GET.get('topic_id')
+    if topic_id:
+        selected_topic = get_object_or_404(Topic, pk=topic_id, subject=subject)
+
+    context = {
+        'subject': subject,
+        'units': units,
+        'selected_topic': selected_topic,
+    }
+    return render(request, 'subject/subject_detail.html', context)
+
+"""
+@login_required
+def reply_comment(request, blog_pk, comment_pk):
+    blog = get_object_or_404(Blog, pk=blog_pk)
+    parent_comment = get_object_or_404(Comment, pk=comment_pk)
+
+    if request.method == 'POST' and request.is_ajax():
+        # Create the reply comment
+        reply = Comment(
+            blog=blog,
+            content=request.POST['content'],
+            author=request.user,
+            parent_comment=parent_comment
+        )
+        reply.save()
+
+        # Return the reply's details as a JSON response
+        response_data = {
+            'author': reply.author.username,
+            'content': reply.content,
+            'created_at': reply.created_at.strftime('%Y-%m-%d %H:%M:%S')
+        }
+        return JsonResponse(response_data)
+
+    return JsonResponse({'error': 'Invalid request'}, status=400)
+
+"""

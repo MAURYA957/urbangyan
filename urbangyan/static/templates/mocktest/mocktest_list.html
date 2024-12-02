@@ -1,13 +1,64 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <h1>Mock Tests</h1>
-  <ul>
-    {% for mocktest in mocktests %}
-      <li>
-        <a href="{% url 'mocktest-detail' mocktest.pk %}">{{ mocktest }}</a>
-      </li>
-    {% endfor %}
-  </ul>
-  <a href="{% url 'mocktest-create' %}">Create New Mock Test</a>
+<div class="container mt-4">
+
+    <!-- Global Create button for all staff users -->
+    {% if user.is_staff %}
+        <a href="{% url 'mocktest-create' %}" class="btn btn-sm btn-primary mb-3">Create New Mock Test</a>
+    {% endif %}
+
+    <!-- Search bar -->
+    <form method="GET" class="mb-3">
+        <input
+            type="text"
+            name="search"
+            class="form-control"
+            placeholder="Search Mock Tests..."
+            value="{{ request.GET.search|default:'' }}">
+    </form>
+
+    <!-- Mock Tests Table -->
+    <table class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Exam Name</th>
+                <th>Test Duration</th>
+                <th>Total Questions</th>
+                <th>Max Score</th>
+                <th>Negative Mark</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for mocktest in mocktests %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>
+                        <a href="{% url 'mocktest-user'%}">{{ mocktest.Exam_Name }}</a>
+                    </td>
+                    <td>{{ mocktest.duration }}</td>
+                    <td>{{ mocktest.total_questions }}</td>
+                    <td>{{ mocktest.total_max_score }}</td>
+                    <td>{{ mocktest.negative_mark }}</td>
+                    <td>
+                        {% if user.is_superuser %}
+                            <!-- Admin options -->
+                            <a href="{% url 'mocktest-update' mocktest.id %}" class="btn btn-sm btn-warning">Update</a>
+                            <a href="{% url 'mocktest-delete' mocktest.id %}" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this mock test?');">Delete</a>
+                        {% elif user.is_staff %}
+                            <!-- Staff options -->
+                            <a href="{% url 'mocktest-update' mocktest.id %}" class="btn btn-sm btn-warning">Update</a>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center">No Mock Tests Found</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 {% endblock %}

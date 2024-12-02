@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% load custom_filters %}
+{% block content %}
+<div class="container mt-4">
+    <h4 class="text-center text-white py-2" style="background-color: #ff9800; border-radius: 5px;">
+        Courses
+    </h4> <!-- Bright orange title for better visibility -->
+
+    <div class="row mt-3">
+        {% for course in courses %}
+            <div class="col-md-3 mb-4">
+                <div class="card h-100 shadow-sm" style="background-color: #f0f8ff; border: 1px solid #ff9800;">
+                    {% if course.image %}
+                        <img src="{{ course.image.url }}" class="card-img-top img-thumbnail" alt="{{ course.title }}"
+                             style="max-height: 150px; object-fit: cover; border-bottom: 2px solid #ff9800;">
+                    {% endif %}
+                    <div class="card-body d-flex flex-column justify-content-between">
+                        <!-- Course Title -->
+                        <h5 class="card-title text-primary">{{ course.title }}</h5>
+
+                        <!-- Course Description -->
+                        <div class="card-content mt-2 text-muted">
+                            {% if course.description|length > 50 %}
+                                {{ course.description|truncate_html:50|safe }}..
+                                <a href="#" class="btn btn-link p-0 text-info">Read More</a>
+                            {% else %}
+                                {{ course.description }}
+                                <a href="#" class="btn btn-link p-0 text-info">Read More</a>
+                            {% endif %}
+                        </div>
+
+                        <!-- Course Price and Button -->
+                        <div class="mt-3">
+                            <span class="d-block text-success fw-bold">Price: ₹{{ course.price }}</span>
+                            <a href="#" class="btn btn-sm btn-success w-100 mt-2">
+                                <i class="fas fa-shopping-cart"></i> Add to Cart
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock content %}
+<style>
+    /* Card Styling */
+    .card {
+        min-height: 350px; /* Standardize height for consistency */
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border-radius: 8px; /* Rounded corners for modern look */
+    }
+
+    .card:hover {
+        transform: scale(1.05); /* Slight zoom-in effect */
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Enhanced shadow on hover */
+    }
+
+    /* Title Styling */
+    .card-title {
+        font-size: 1.2em;
+        color: #3f51b5; /* Cool blue for contrast */
+        font-weight: bold;
+    }
+
+    /* Price Styling */
+    .text-success {
+        font-size: 1rem;
+        color: #4caf50 !important; /* Green to indicate affordability */
+    }
+
+    /* Button Styling */
+    .btn-success {
+        background: linear-gradient(90deg, #4caf50, #81c784); /* Gradient green */
+        border: none;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: background 0.3s ease;
+    }
+
+    .btn-success:hover {
+        background: linear-gradient(90deg, #388e3c, #66bb6a); /* Darker gradient on hover */
+    }
+
+    /* Image Styling */
+    .card-img-top {
+        border-radius: 8px 8px 0 0; /* Rounded top corners for images */
+    }
+
+    /* Additional Spacing */
+    .mt-3 {
+        margin-top: 1rem !important;
+    }
+</style>

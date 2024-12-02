@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block content %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ mocktest.name }} - Instructions</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f7f9fc;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 50px auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+        }
+
+        .highlighted-details {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            background: #eef5fb;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .highlighted-details div {
+            text-align: center;
+            flex: 1;
+        }
+
+        .instructions {
+            margin-top: 20px;
+            background: #fefefe;
+            padding: 15px;
+            border-left: 5px solid #3498db;
+            border-radius: 5px;
+        }
+
+        .next-button {
+            display: block;
+            width: 100%;
+            background-color: #3498db;
+            color: #fff;
+            border: none;
+            padding: 10px;
+            font-size: 18px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        .next-button:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .next-button:active {
+            transform: translateY(0);
+        }
+
+        .loading-indicator {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #666;
+        }
+.info-buttons button {
+            background-color: #3498db;
+            position: relative;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            position: left
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: default;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+    <script>
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>{{ mocktest.name }}</h1>
+
+         <div class="container">
+        <div class="info-buttons">
+            <button style="margin-right: 10%; float: left; background: blue;">Total Questions: {{ total_questions }}</button>
+            <button style="margin-left: 10%; float: right; background: green;">Duration: {{ duration }} minutes</button>
+        </div>
+        <div class="instructions">
+            <center><h2><strong>Instructions:</strong></h2></center>
+            <center><h3><strong style="font-size:30px; font-family:verdana; color: blue; margin-right: 6%">{{ mocktest.Exam_Name }}</strong></h3></center>
+            {{ mocktest.Instructions }}
+        </div>
+
+        <form method="get" action="{% url 'mocktest_question_detail' mocktest.id %}" onsubmit="showLoading()">
+            <button type="submit" class="next-button">Start Test</button>
+        </form>
+
+        <div id="loading" class="loading-indicator">
+            Preparing your test... Please wait.
+        </div>
+    </div>
+</body>
+</html>
+{% endblock content %}

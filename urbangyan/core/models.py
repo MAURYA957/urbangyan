@@ -1,3 +1,4 @@
+import uuid
 from datetime import timedelta, datetime
 from random import random
 
@@ -5,9 +6,12 @@ from django.conf import settings
 from django.contrib.auth.models import AbstractUser, Group, Permission
 from django.db import models
 from django.db.models import Sum
+from django.middleware.csrf import logger
 from django.urls import reverse
 from django.utils import timezone
 from ckeditor_uploader.fields import RichTextUploadingField
+from rest_framework.generics import get_object_or_404
+
 
 
 class User(AbstractUser):
@@ -15,7 +19,7 @@ class User(AbstractUser):
     first_name = models.CharField(max_length=100, blank=True)
     middle_name = models.CharField(max_length=100, blank=True)
     last_name = models.CharField(max_length=100)
-    bio = RichTextUploadingField(max_length=1000)
+    profile = RichTextUploadingField(max_length=1000, null=True, blank=True)
     email = models.EmailField(unique=True)  # Ensure email is unique
     phone = models.CharField(max_length=15, blank=True)  # Allow blank
     address = models.CharField(max_length=100, blank=True)  # Allow blank
@@ -81,9 +85,11 @@ class Comment(models.Model):
     content = RichTextUploadingField()
     author = models.ForeignKey(User, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
 
     def __str__(self):
-        return self.blog
+        return self.content
 
 
 class Offer(models.Model):
@@ -264,6 +270,7 @@ class MockTest(models.Model):
     duration = models.DurationField()
     total_questions = models.PositiveIntegerField(default=0)
     total_max_score = models.PositiveIntegerField(default=0)
+    negative_mark = models.FloatField(default=0.0)
     questions = models.ManyToManyField('Questions', related_name='mock_tests')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -297,21 +304,98 @@ class MockTest(models.Model):
             self.populate_questions()  # Only populate on initial save
             super().save(update_fields=['total_questions', 'total_max_score'])  # Save totals without recursion
 
+
 class UserResponse(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    question = models.ForeignKey(Questions, on_delete=models.CASCADE)
-    selected_option = models.IntegerField()
-    is_correct = models.BooleanField()
-    mock_test = models.ForeignKey(MockTest, on_delete=models.CASCADE, related_name='user_responses')
+    mock_test = models.ForeignKey(MockTest, on_delete=models.CASCADE, null=True, blank=True)
+    question = models.ForeignKey(Questions, on_delete=models.CASCADE, null=True, blank=True)
+    submission_id = models.UUIDField(default=uuid.uuid4, editable=False)  # Unique submission ID
+    correct_answer = models.IntegerField(null=True, blank=True)  # Option number (1-4)
+    explanation = RichTextUploadingField(max_length=1000, null=True, blank=True)
+    selected_option = models.IntegerField()  # User's selected option (1-4)
+    answer_description = RichTextUploadingField(max_length=1000, null=True, blank=True)  # Explanation based on user input
+    is_correct = models.BooleanField(default=False)
+    exam_name = models.CharField(max_length=255, null=True, blank=True)  # Changed from RichText to CharField
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
 
     def __str__(self):
-        return f"Response by {self.user} for {self.question}"
+        return f"Response by {self.user} for Question ID {self.question.id if self.question else 'N/A'}"
+
+
+    def __str__(self):
+        return f"Response by {self.user} for Question ID {self.question.id if self.question else 'N/A'}"
+
+    def save(self, *args, **kwargs):
+        logger.debug(f"Starting save process for UserResponse ID: {self.id if self.id else 'New Instance'}")
+
+        if not self.mock_test or not self.question:
+            logger.error("MockTest or Question is missing during save.")
+            raise ValueError("MockTest and Question are required fields.")
+
+        # Validate the selected option
+        if self.selected_option not in [0, 1, 2, 3, 4]:
+            logger.error(f"Invalid selected option: {self.selected_option}. Must be between 1 and 4.")
+            raise ValueError("Selected option must be between 1 and 4.")
+
+        # Populate fields if not explicitly set
+        self._populate_correct_answer_and_explanation()
+        self._populate_exam_name()
+        self._check_correctness()
+        self._populate_answer_description()
+
+        # Call superclass save
+        try:
+            logger.debug("Saving UserResponse to the database.")
+            super().save(*args, **kwargs)
+            logger.debug("Save successful.")
+        except Exception as e:
+            logger.error(f"Error saving UserResponse: {e}")
+            raise
+
+    def _populate_correct_answer_and_explanation(self):
+        if self.correct_answer is None:
+            self.correct_answer = self.question.answer
+            logger.debug(f"Set correct_answer: {self.correct_answer}")
+
+        if self.explanation is None:
+            self.explanation = self.question.explanation
+            logger.debug(f"Set explanation: {self.explanation}")
+
+    def _populate_exam_name(self):
+        if self.exam_name is None and self.mock_test:
+            self.exam_name = self.mock_test.Exam_Name
+            logger.debug(f"Set exam_name: {self.exam_name}")
+
+    def _check_correctness(self):
+        self.is_correct = self.selected_option == self.correct_answer
+        logger.debug(
+            f"Set is_correct: {self.is_correct} (Selected: {self.selected_option}, Correct: {self.correct_answer})")
+
+    def _populate_answer_description(self):
+        options_map = {
+            1: self.question.option_1,
+            2: self.question.option_2,
+            3: self.question.option_3,
+            4: self.question.option_4,
+        }
+        self.answer_description = options_map.get(self.selected_option, "Invalid selection.")
+        logger.debug(f"Set answer_description: {self.answer_description}")
 
 class Badge(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    mock_test = models.ForeignKey(MockTest, on_delete=models.CASCADE)
-    badge_type = models.CharField(max_length=100)
-    date_awarded = models.DateTimeField(auto_now_add=True)
+        user = models.ForeignKey(User, on_delete=models.CASCADE)
+        submission_id = models.UUIDField(default=uuid.uuid4, editable=False)  # Unique submission ID
+        score = models.IntegerField(default=0)  # Changed to IntegerField
+        attempted_question = models.IntegerField(default=0)  # Changed to IntegerField
+        total_question = models.IntegerField(default=0)  # Changed to IntegerField
+        Incorrect_question = models.IntegerField(default=0)  # Changed to IntegerField
+        Unattampted_question = models.IntegerField(default=0)  # Changed to IntegerField
+        mock_test = models.ForeignKey(MockTest, on_delete=models.CASCADE)
+        badge_type = models.CharField(max_length=100)
+        date_awarded = models.DateTimeField(auto_now_add=True)
+        exam_name = models.CharField(max_length=255, null=True, blank=True)  # Changed from RichText to CharField
+        created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+        updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
 
-    def __str__(self):
-        return f"{self.user} earned {self.badge_type} badge"
+        def __str__(self):
+            return f"{self.user} earned {self.badge_type} badge"

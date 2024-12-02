@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="text-center mb-4">Update Topic</h1>
+
+    <!-- Display messages -->
+    {% if messages %}
+        <div class="mb-3">
+            {% for message in messages %}
+                <div class="alert {{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <!-- Update form -->
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <!-- Topic Name -->
+        <div class="mb-3">
+            <label for="id_topic" class="form-label">Topic Name</label>
+            <input type="text" id="id_topic" name="topic" class="form-control" value="{{ topic.topic }}" placeholder="Enter the topic name" required>
+        </div>
+
+        <!-- Description -->
+        <div class="mb-3">
+            <label for="id_description" class="form-label">Description</label>
+            <textarea id="id_description" name="description" class="form-control" placeholder="Enter a detailed description" required>{{ topic.description }}</textarea>
+        </div>
+
+        <!-- Current Image and Upload -->
+        <div class="mb-3">
+            <label for="id_image" class="form-label">Upload Image</label>
+            <input type="file" id="id_image" name="image" class="form-control">
+            {% if topic.image %}
+                <p class="mt-2">Current Image:</p>
+                <img src="{{ topic.image.url }}" alt="{{ topic.topic }}" class="img-thumbnail" style="max-width: 200px;">
+            {% endif %}
+        </div>
+
+        <!-- Current File and Upload -->
+        <div class="mb-3">
+            <label for="id_file" class="form-label">Upload File</label>
+            <input type="file" id="id_file" name="file" class="form-control">
+            {% if topic.file %}
+                <p class="mt-2">Current File:</p>
+                <a href="{{ topic.file.url }}" target="_blank">{{ topic.file.name }}</a>
+            {% endif %}
+        </div>
+
+        <!-- Subject Selection -->
+        <div class="mb-3">
+            <label for="id_subject" class="form-label">Select Subject</label>
+            <select id="id_subject" name="subject" class="form-select" required onchange="loadUnits(this.value)">
+                <option value="">-- Select Subject --</option>
+                {% for subject in subjects %}
+                    <option value="{{ subject.id }}" {% if topic.subject.id == subject.id %}selected{% endif %}>{{ subject.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Unit Selection -->
+        <div class="mb-3">
+            <label for="id_unit" class="form-label">Select Unit</label>
+            <select id="id_unit" name="unit" class="form-select" required>
+                <option value="">-- Select Unit --</option>
+                {% for unit in units %}
+                    <option value="{{ unit.id }}" {% if topic.unit and topic.unit.id == unit.id %}selected{% endif %}>{{ unit.title }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" class="btn btn-primary btn-block">Update Topic</button>
+    </form>
+</div>
+
+<!-- Include CKEditor -->
+<script src="https://cdn.ckeditor.com/4.20.2/standard/ckeditor.js"></script>
+<script>
+    // Initialize CKEditor
+    try {
+        CKEDITOR.replace('id_description');
+    } catch (error) {
+        console.error("Error initializing CKEditor:", error);
+    }
+
+    // Function to dynamically load units based on the selected subject
+    function loadUnits(subjectId) {
+        const unitSelect = document.getElementById('id_unit');
+        unitSelect.innerHTML = '<option value="">-- Select Unit --</option>'; // Clear current options
+
+        if (subjectId) {
+            fetch(`/get-units/${subjectId}/`)  // Replace with the actual URL for fetching units
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Error fetching units');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    data.units.forEach(unit => {
+                        const option = document.createElement('option');
+                        option.value = unit.id;
+                        option.textContent = unit.title;
+                        unitSelect.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading units:', error);
+                    const errorOption = document.createElement('option');
+                    errorOption.value = '';
+                    errorOption.textContent = 'Error loading units';
+                    unitSelect.appendChild(errorOption);
+                });
+        }
+    }
+</script>
+{% endblock %}

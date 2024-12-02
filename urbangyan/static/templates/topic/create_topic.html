@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row g-4">
+        <!-- Left side: Ads block -->
+        <div class="col-md-3">
+            <div class="ad-container bg-light p-4 rounded shadow-sm">
+                <h5 class="mb-3">Ad Section</h5>
+                <p>Place relevant advertisements here. This section can be used for promotions.</p>
+            </div>
+        </div>
+
+        <!-- Middle: Form for creating a topic -->
+        <div class="col-md-6">
+            <div class="form-container bg-white p-5 rounded shadow-sm">
+                <h1 class="text-center mb-4 text-primary">Create Topic</h1>
+
+                {% if messages %}
+                    <div class="alert-container mb-3">
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+
+                    <!-- Topic Name -->
+                    <div class="form-group mb-3">
+                        <label for="topic" class="form-label"><strong>Topic Name:</strong></label>
+                        <input type="text" id="topic" name="topic" class="form-control" placeholder="Enter topic name" required>
+                    </div>
+
+                    <!-- Description with CKEditor -->
+                    <div class="form-group mb-3">
+                        <label for="description" class="form-label"><strong>Description:</strong></label>
+                        <textarea id="description" name="description" class="form-control" required>{{ form.description.value }}</textarea>
+                    </div>
+
+                    <!-- Image Upload -->
+                    <div class="form-group mb-3">
+                        <label for="image" class="form-label"><strong>Upload Image (Optional):</strong></label>
+                        <input type="file" id="image" name="image" class="form-control">
+                    </div>
+
+                    <!-- File Upload -->
+                    <div class="form-group mb-3">
+                        <label for="file" class="form-label"><strong>Upload File (Optional):</strong></label>
+                        <input type="file" id="file" name="file" class="form-control">
+                    </div>
+
+                    <!-- Select Subject -->
+                    <div class="form-group mb-3">
+                        <label for="subject" class="form-label"><strong>Select Subject:</strong></label>
+                        <select id="subject" name="subject" class="form-select" required onchange="loadUnits(this.value)">
+                            <option value="">Select a subject</option>
+                            {% for subject in subjects %}
+                                <option value="{{ subject.pk }}">{{ subject.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Select Unit -->
+                    <div class="form-group mb-3">
+                        <label for="unit" class="form-label"><strong>Select Unit:</strong></label>
+                        <select id="unit" name="unit" class="form-select" required>
+                            <option value="">Select a unit</option>
+                            <!-- Units will be dynamically loaded based on the selected subject -->
+                        </select>
+                        <div id="unit-loader" class="spinner-border text-primary mt-2 d-none" role="status" style="width: 1.5rem; height: 1.5rem;">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+
+                    <!-- Hidden Staff Field -->
+                    <input type="hidden" name="staff" value="{{ request.user.pk }}">
+
+                    <!-- Submit Button -->
+                    <button type="submit" class="btn btn-primary w-100">Create Topic</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Right side: Ads block -->
+        <div class="col-md-3">
+            <div class="ad-container bg-light p-4 rounded shadow-sm">
+                <h5 class="mb-3">Ad Section</h5>
+                <p>Promote additional content or offers here.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.ckeditor.com/4.21.0/standard/ckeditor.js"></script>
+<script>
+    // Initialize CKEditor
+    CKEDITOR.replace('description');
+
+    // Function to load units based on the selected subject
+    function loadUnits(subjectId) {
+        const unitSelect = document.getElementById('unit');
+        const loader = document.getElementById('unit-loader');
+
+        unitSelect.innerHTML = '<option value="">Select a unit</option>'; // Reset options
+        loader.classList.remove('d-none'); // Show loader
+
+        if (subjectId) {
+            fetch(`/get-units/${subjectId}/`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch units');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.units && data.units.length > 0) {
+                        data.units.forEach(unit => {
+                            unitSelect.insertAdjacentHTML('beforeend', `<option value="${unit.id}">${unit.title}</option>`);
+                        });
+                    } else {
+                        unitSelect.insertAdjacentHTML('beforeend', '<option value="">No units available</option>');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading units:', error);
+                    unitSelect.insertAdjacentHTML('beforeend', '<option value="">Error loading units</option>');
+                })
+                .finally(() => {
+                    loader.classList.add('d-none'); // Hide loader
+                });
+        } else {
+            loader.classList.add('d-none'); // Hide loader if no subject selected
+        }
+    }
+</script>
+{% endblock content %}

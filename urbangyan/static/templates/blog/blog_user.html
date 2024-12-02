@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4" style="border: 3px solid orange; border-radius: 8px; padding: 20px; background-color: #fff8e1;">  <!-- Orange thick border and light yellow background -->
+    <h4 class="text-center mb-4" style="background-color: #ffcc80; padding: 10px; border-radius: 5px; color: #4e342e;">Blogs</h4> <!-- Warm orange background and brown text for the title -->
+
+    <div class="row">
+        {% for blog in blogs %}
+            <div class="col-md-3 mb-4">  <!-- 4 columns per row for better layout -->
+                <div class="card h-100" style="background-color: #e3f2fd; border: 1px solid #0288d1; border-radius: 8px; overflow: hidden;">  <!-- Light blue background with rounded corners -->
+                    <div class="card-body d-flex flex-column justify-content-start">  <!-- Ensures content starts from the top -->
+                        <strong class="card-title" style="color: #0277bd; font-size: 1.2em;">{{ blog.title }}</strong>  <!-- Blog title with a bold blue color -->
+
+                        <div class="card-content mt-2" style="color: #4e342e;">  <!-- Subtle brown text for content -->
+                            {% if blog.content|length > 50 %}
+                                {{ blog.content|slice:":50" }}...  <!-- Show first 50 characters -->
+                                <a href="{% url 'blog-detail-template' blog.pk %}" class="btn btn-link p-0" style="color: #0288d1;">View More</a>  <!-- Link styled as blue -->
+                            {% else %}
+                                {{ blog.content }}
+                            {% endif %}
+                            <h6 style="margin-top: 10px; color: #00796b;">Likes ({{ blog.likes_count }})</h6>  <!-- Green text for likes -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% endblock content %}
+
+<style>
+    /* Uniform card height and better layout */
+    .card {
+        min-height: 280px;  /* Ensures consistent card height */
+        display: flex;
+        flex-direction: column;
+        justify-content: start;  /* Content starts from the top */
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);  /* Subtle shadow for depth */
+        transition: transform 0.3s ease, box-shadow 0.3s ease;  /* Smooth transition for hover effects */
+    }
+
+    /* Card hover effect */
+    .card:hover {
+        transform: translateY(-10px);  /* Lifts card slightly */
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);  /* Adds a stronger shadow */
+    }
+
+    /* Card content truncation and styling */
+    .card-content {
+        max-height: 100px;
+        overflow: hidden;  /* Hides overflowing text */
+        text-overflow: ellipsis;  /* Adds "..." for truncated text */
+        line-height: 1.5;  /* Improves readability */
+    }
+
+    /* Title styling */
+    .card-title {
+        color: #0277bd;  /* Blue color */
+        margin-bottom: 15px;
+        text-transform: capitalize;  /* Capitalize each word */
+    }
+
+    /* Padding for card body */
+    .card-body {
+        padding: 20px;
+    }
+
+    /* Blog container spacing */
+    .container {
+        margin-top: 20px;
+        border-radius: 8px;
+    }
+
+    /* Blog title styling */
+    h4 {
+        font-weight: bold;
+        text-transform: uppercase;  /* Makes the title uppercase */
+        letter-spacing: 1px;  /* Adds spacing between letters */
+    }
+</style>

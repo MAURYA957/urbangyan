@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- quiz Title with a colorful header -->
+    <h1 class="text-center text-white p-4" style="background-color: #f8b400; border-radius: 10px;">Quiz Result: {{ quizname.name }}</h1> <!-- Light orange background for title -->
+
+    <!-- Result Summary Section with colorful details -->
+    <div class="result-summary mt-4 p-4" style="background-color: #e7f5ff; border-radius: 8px;">
+        <p><strong>Total Questions:</strong> <span class="text-success">{{ result_summary.total_questions }}</span></p>
+        <p><strong>Attempted Questions:</strong> <span class="text-info">{{ result_summary.attempted_questions }}</span></p>
+        <p><strong>Correct Answers:</strong> <span class="text-success">{{ result_summary.correct_answers }}</span></p>
+        <p><strong>Wrong Answers:</strong> <span class="text-danger">{{ result_summary.wrong_answers }}</span></p>
+        <p><strong>Your Score:</strong> <span class="text-primary">{{ result_summary.score }}</span></p>
+    </div>
+
+    <!-- Action Buttons with colorful, rounded buttons -->
+    <div class="text-center mt-4">
+        <a href="/quiz_view/" class="btn btn-success btn-lg mx-2">Try Again</a> <!-- Green button -->
+        <a href="/" class="btn btn-secondary btn-lg mx-2">Back to Home</a> <!-- Grey button -->
+    </div>
+
+    <!-- Success Message if result saved -->
+    {% if result_saved %}
+    <div class="alert alert-success mt-4" role="alert" style="border-radius: 8px; background-color: #d4edda; color: #155724;">
+        Your result has been saved successfully!
+    </div>
+    {% endif %}
+</div>
+
+{% endblock content %}

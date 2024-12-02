@@ -1,10 +1,55 @@
-<!DOCTYPE html>
+{% extends "base.html" %}
+
+{% block content %}
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update Subject</title>
+    <!-- Include Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
+<div class="container mt-5">
+    <h1 class="text-center mb-4">Update Subject</h1>
+    {% if messages %}
+        <div>
+            {% for message in messages %}
+                <div class="alert {{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="id_name" class="form-label">Subject Name</label>
+            <input type="text" id="id_name" name="name" class="form-control" value="{{ subject.name }}" required>
+        </div>
+        <div class="mb-3">
+            <label for="id_description" class="form-label">Description</label>
+            <!-- Use CKEditor for rich text -->
+            <textarea id="id_description" name="description" class="form-control" required>{{ subject.description }}</textarea>
+        </div>
+        <div class="mb-3">
+            <label for="id_image" class="form-label">Upload Image</label>
+            <input type="file" id="id_image" name="image" class="form-control">
+            {% if subject.image %}
+                <p class="mt-2">Current Image:</p>
+                <img src="{{ subject.image.url }}" alt="{{ subject.name }}" style="max-width: 200px;" class="img-thumbnail">
+            {% endif %}
+        </div>
+        <button type="submit" class="btn btn-primary">Update Subject</button>
+    </form>
+</div>
 
+<!-- Include Bootstrap JS and dependencies -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Include CKEditor -->
+<script src="https://cdn.ckeditor.com/4.20.2/standard/ckeditor.js"></script>
+<script>
+    // Initialize CKEditor for the description field
+    CKEDITOR.replace('id_description');
+</script>
 </body>
 </html>
+{% endblock %}

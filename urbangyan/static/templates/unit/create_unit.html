@@ -1,10 +1,92 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends 'base.html' %}
 
-</body>
-</html>
+{% block content %}
+<div class="container mt-5">
+    <h2 class="mb-4">{{ form.instance.id|default:'Create New' }} Unit</h2>
+
+    {% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <!-- Subject Dropdown -->
+        <div class="mb-3">
+            <label for="id_subject" class="form-label">Subject</label>
+            <select id="id_subject" name="subject" class="form-select">
+                <option value="">Select Subject</option>
+                {% for subject in subjects %}
+                <option value="{{ subject.id }}" {% if form_data.subject.id == subject.id %}selected{% endif %}>
+                    {{ subject.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Title Field -->
+        <div class="mb-3">
+            <label for="id_title" class="form-label">Title</label>
+            <textarea id="id_title" name="title" class="form-control">{{ form_data.title|default:'' }}</textarea>
+        </div>
+
+        <!-- Description Field -->
+        <div class="mb-3">
+            <label for="id_description" class="form-label">Description</label>
+            <textarea id="id_description" name="description" class="form-control">{{ form_data.description|default:'' }}</textarea>
+        </div>
+
+        <!-- Table of Contents Field -->
+        <div class="mb-3">
+            <label for="id_table_of_contents" class="form-label">Table of Contents</label>
+            <textarea id="id_table_of_contents" name="table_of_contents" class="form-control">{{ form_data.table_of_contents|default:'' }}</textarea>
+        </div>
+        <!-- Submit Button -->
+        <button type="submit" class="btn btn-primary">Save Unit</button>
+    </form>
+</div>
+
+<script src="https://cdn.ckeditor.com/4.21.0/standard/ckeditor.js"></script>
+<script>
+    // Initialize CKEditor for description and table of contents
+    CKEDITOR.replace('id_description');
+    CKEDITOR.replace('id_table_of_contents');
+
+    // Preview uploaded image
+    function previewImage(event) {
+        const imagePreview = document.getElementById('image-preview');
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                imagePreview.src = e.target.result;
+                imagePreview.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        } else {
+            imagePreview.style.display = 'none';
+        }
+    }
+
+    // Update author list dynamically
+    function updateAuthorList() {
+        const authorsInput = document.getElementById('id_authors');
+        const authorList = document.getElementById('author-list');
+        const authors = authorsInput.value.split(',').map(author => author.trim()).filter(author => author !== '');
+
+        // Clear the current list
+        authorList.innerHTML = '';
+
+        // Add updated list
+        authors.forEach(author => {
+            const li = document.createElement('li');
+            li.textContent = author;
+            li.className = 'list-group-item';
+            authorList.appendChild(li);
+        });
+    }
+
+    // Initialize author list on page load
+    document.addEventListener('DOMContentLoaded', updateAuthorList);
+</script>
+{% endblock %}

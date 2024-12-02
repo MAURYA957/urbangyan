@@ -2,32 +2,33 @@
 
 {% block content %}
 <div class="container mt-4">
-    <a href="/subjects/create/" class="btn btn-success">Add new Subject</a>
-    <h3></h3>
+    <h1 class="text-center">Quiz List</h1> <!-- Center the title using Bootstrap class -->
+
     <!-- Search Container -->
     <div class="mb-3">
-        <input type="text" id="search" class="form-control" placeholder="Search Questions" onkeyup="filterQuestions()">
+        <input type="text" id="search" class="form-control" placeholder="Search Quiz Names" onkeyup="filterQuestions()">
     </div>
 
     <table class="table table-bordered" style="background-color: #f0f8ff;"> <!-- Light blue background for the table -->
         <thead style="background-color: #f8d8c0;"> <!-- Light orange header -->
             <tr>
                 <th>Subject</th>
+                <th>Quiz</th>
                 <th>Actions</th>
             </tr>
         </thead>
         <tbody id="questionTableBody">
-            {% for subject in subjects %}
+            {% for quiz in quizs %}
                 <tr>
-                    <td>{{ subject.name }}</td>
+                    <td>{{ quiz.subject }}</td>
+                    <td>{{ quiz.quiz }}</td>
                     <td>
                         {% if user.is_authenticated %}
-                            {% if user.is_staff_user %}
-                                <a href="{% url 'subject-update-template' subject.pk %}" class="btn btn-warning btn-sm">Update</a>
+                            {% if user.is_staff_user or user.is_superuser %} <!-- Combined staff and superuser -->
+                                <a href="{% url 'quiz-update-template' quiz.pk %}" class="btn btn-warning btn-sm">Update</a>
                             {% endif %}
-                            {% if user.is_superuser %}
-                                <a href="{% url 'subject-update-template' subject.pk %}" class="btn btn-warning btn-sm">Update</a>
-                                <a href="{% url 'subject-delete-template' subject.pk %}" class="btn btn-danger btn-sm">Delete</a>
+                            {% if user.is_superuser %} <!-- Keep delete button for superusers -->
+                                <a href="{% url 'quiz-delete-template' quiz.pk %}" class="btn btn-danger btn-sm">Delete</a>
                             {% endif %}
                         {% endif %}
                     </td>
@@ -36,8 +37,6 @@
         </tbody>
     </table>
 </div>
-
-{% include 'footer.html' %}
 
 <script>
     function filterQuestions() {

@@ -1,12 +1,73 @@
 {% extends 'base.html' %}
-
 {% block content %}
-<div class="container">
-    <h2>{{ form.instance.id|default:'Create New' }} Subject</h2>
-    <form method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-        {{ form|crispy }}
-        <button type="submit" class="btn btn-primary">{{ form.instance.id|default:'Create' }} Subject</button>
+<div class="container mt-5">
+    <h2 class="mb-4">{{ form.instance.id|default:'Create New' }} Subject</h2>
+    {% if error %}
+<div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="mb-3">
+        <label for="id_name" class="form-label">Subject Name</label>
+        <input type="text" id="id_name" name="name" class="form-control" value="{{ form_data.name|default:'' }}">
+    </div>
+    <div class="mb-3">
+        <label for="id_description" class="form-label">Description</label>
+        <textarea id="id_description" name="description" class="form-control">{{ form_data.description|default:'' }}</textarea>
+    </div>
+    <div class="mb-3">
+        <label for="id_image" class="form-label">Upload Image</label>
+        <input type="file" id="id_image" name="image" class="form-control">
+    </div>
+    <div class="mb-3">
+        <label for="id_authors" class="form-label">Authors</label>
+        <input type="text" id="id_authors" name="authors" class="form-control" value="{{ form_data.authors|default:'' }}">
+    </div>
+    <button type="submit" class="btn btn-primary">Create Subject</button>
+</form>
     </form>
 </div>
+
+<script src="https://cdn.ckeditor.com/4.21.0/standard/ckeditor.js"></script>
+<script>
+    // Initialize CKEditor
+    CKEDITOR.replace('id_description');
+
+    // Function to preview uploaded image
+    function previewImage(event) {
+        const imagePreview = document.getElementById('image-preview');
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                imagePreview.src = e.target.result;
+                imagePreview.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        } else {
+            imagePreview.style.display = 'none';
+        }
+    }
+
+    // Function to update author list dynamically
+    function updateAuthorList() {
+        const authorsInput = document.getElementById('id_authors');
+        const authorList = document.getElementById('author-list');
+        const authors = authorsInput.value.split(',').map(author => author.trim()).filter(author => author !== '');
+
+        // Clear the current list
+        authorList.innerHTML = '';
+
+        // Add updated list
+        authors.forEach(author => {
+            const li = document.createElement('li');
+            li.textContent = author;
+            authorList.appendChild(li);
+        });
+    }
+
+    // Initialize author list on page load
+    document.addEventListener('DOMContentLoaded', updateAuthorList);
+</script>
 {% endblock %}
+

@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block content %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Quiz</title>
+
+    <!-- CKEditor script -->
+    <script src="//cdn.ckeditor.com/4.16.0/standard/ckeditor.js"></script>
+
+    <!-- Bootstrap CSS (optional for layout) -->
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        /* Light blue background for the form container */
+        .form-container {
+            background-color: #f0f8ff; /* Light sky blue */
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+<body>
+<div class="container mt-5">
+    <div class="row">
+        <!-- Left side: Ads block -->
+        <div class="col-md-3">
+            <div class="ad-container bg-light p-3">
+                <h5>Ad Section</h5>
+                <p>Add relevant advertisements here.</p>
+            </div>
+        </div>
+
+        <!-- Middle: Form for creating quiz with light blue background -->
+        <div class="col-md-6">
+            <div class="form-container">
+                <h1 class="text-center mb-4">Create Quiz</h1>
+
+                <form method="post" enctype="multipart/form-data" class="form-horizontal">
+                    {% csrf_token %}
+
+                    <!-- quiz Name -->
+                    <div class="form-group">
+                        <label for="quizname">Quiz Name:</label>
+                        <input type="text" id="quizname" name="quizname" class="form-control" required>
+                    </div>
+
+                    <!-- Description with CKEditor -->
+                    <div class="form-group">
+                        <label for="description">Description:</label>
+                        <textarea id="description" name="description" class="form-control" required></textarea>
+                    </div>
+
+                    <!-- Subject dropdown -->
+                    <div class="form-group">
+                        <label for="subject">Select Subject:</label>
+                        <select id="subject" name="subject" class="form-control" required>
+                            {% for subject in subjects %}
+                                <option value="{{ subject.id }}">{{ subject.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" class="btn btn-primary btn-block">Create Quiz</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Right side: Ads block -->
+        <div class="col-md-3">
+            <div class="ad-container bg-light p-3">
+                <h5>Ad Section</h5>
+                <p>Add more advertisements here.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Initialize CKEditor for description field
+    CKEDITOR.replace('description');
+</script>
+
+</body>
+</html>
+{% endblock content %}
