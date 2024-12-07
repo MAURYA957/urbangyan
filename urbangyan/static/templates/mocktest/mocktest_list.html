@@ -47,7 +47,7 @@
                             <!-- Admin options -->
                             <a href="{% url 'mocktest-update' mocktest.id %}" class="btn btn-sm btn-warning">Update</a>
                             <a href="{% url 'mocktest-delete' mocktest.id %}" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this mock test?');">Delete</a>
-                        {% elif user.is_staff %}
+                        {% elif user.is_staff_user %}
                             <!-- Staff options -->
                             <a href="{% url 'mocktest-update' mocktest.id %}" class="btn btn-sm btn-warning">Update</a>
                         {% endif %}

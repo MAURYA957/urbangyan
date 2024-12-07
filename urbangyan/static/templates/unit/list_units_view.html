@@ -3,7 +3,6 @@
 {% block content %}
 <div class="container mt-4">
     <a href="/units/create/" class="btn btn-success">Add new Unit</a>
-    <h3>Units List</h3>
     <!-- Search Container -->
     <div class="mb-3">
         <input type="text" id="search" class="form-control" placeholder="Search Units" onkeyup="filterUnits()">
@@ -14,8 +13,6 @@
             <tr>
                 <th>Subject</th>
                 <th>Unit Title</th>
-                <th>Description</th>
-                <th>Table of Contents</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -24,11 +21,9 @@
                 <tr>
                     <td>{{ unit.subject.name }}</td>
                     <td>{{ unit.title }}</td>
-                    <td>{{ unit.description|truncatewords:10 }}</td>
-                    <td>{{ unit.table_of_contents|truncatewords:10 }}</td>
                     <td>
                         {% if user.is_authenticated %}
-                            {% if user.is_staff %}
+                            {% if user.is_staff_user %}
                                 <a href="{% url 'unit-update-template' unit.pk %}" class="btn btn-warning btn-sm">Update</a>
                             {% endif %}
                             {% if user.is_superuser %}

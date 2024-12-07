@@ -1,10 +1,10 @@
-from django.contrib.auth.hashers import make_password
 from django.http import JsonResponse
 from django.db import IntegrityError
-import logging
-
-logger = logging.getLogger(__name__)
-
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from django.urls import reverse
+from django.shortcuts import get_object_or_404
+from rest_framework.decorators import action
 from django.urls import reverse_lazy
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
@@ -23,26 +23,13 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from .models import Blog, User, QuizResult, UserSession, Comment, Offer, MockTestSubjectConfig, Quiz, QuizName, Subject
 from django.contrib.auth import authenticate, login as auth_login
 from django.contrib.auth import get_user_model
-import logging
-
-# Set up logging
-logger = logging.getLogger(__name__)
-from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from .models import Topic, Course, Unit  # Ensure all necessary imports are present
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 import logging
-from django.shortcuts import render, get_object_or_404
-from django.urls import reverse
 from .models import Questions, Badge, MockTest, UserResponse
 import uuid
-from django.shortcuts import redirect
-
-logger = logging.getLogger(__name__)
-User = get_user_model()
-
-import logging
 from .serializers import (
     BlogSerializer,
     CourseSerializer,
@@ -53,6 +40,11 @@ from .serializers import (
     CustomTokenObtainPairSerializer, UserSessionSerializer, SubjectSerializer, UnitSerializer, OfferSerializer,
     MockTestSerializer
 )
+
+# Set up a logger
+logger = logging.getLogger(__name__)
+
+User = get_user_model()
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):
@@ -173,7 +165,7 @@ class QuestionsViewSet(viewsets.ViewSet):
 
 
 class UserViewSet(viewsets.ViewSet):
-    permission_classes = [AllowAny]  # Set default permission class
+    permission_classes = [AllowAny]  # Public API for login and user creation
 
     def list(self, request):
         logger.debug("Listing all users")
@@ -191,20 +183,21 @@ class UserViewSet(viewsets.ViewSet):
 
     def create(self, request):
         logger.debug("Creating a new user with data: %s", request.data)
-        serializer = UserSerializer(data=request.data)
+        data = request.data.copy()
+        data.setdefault('is_visitor', True)  # Default visitors unless specified
+
+        serializer = UserSerializer(data=data)
         if serializer.is_valid():
             user = serializer.save()
             logger.info(f"User created successfully: {user.id}")
 
-            # Handle many-to-many fields after saving the user instance
+            # Handle many-to-many fields
             if 'groups' in request.data:
                 user.groups.set(request.data['groups'])
-                logger.debug(f"Groups set for user {user.id}: {request.data['groups']}")
             if 'user_permissions' in request.data:
                 user.user_permissions.set(request.data['user_permissions'])
-                logger.debug(f"User permissions set for user {user.id}: {request.data['user_permissions']}")
 
-            # Generate JWT token for the new user
+            # Generate JWT token
             refresh = RefreshToken.for_user(user)
             access_token = str(refresh.access_token)
             logger.info(f"Generated tokens for user {user.id}")
@@ -215,7 +208,6 @@ class UserViewSet(viewsets.ViewSet):
                 'refresh': str(refresh)
             }, status=status.HTTP_201_CREATED)
 
-        # Log the validation errors
         logger.error(f"Validation errors: {serializer.errors}")
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -230,10 +222,8 @@ class UserViewSet(viewsets.ViewSet):
             # Handle many-to-many fields
             if 'groups' in request.data:
                 user.groups.set(request.data['groups'])
-                logger.debug(f"Groups updated for user {user.id}: {request.data['groups']}")
             if 'user_permissions' in request.data:
                 user.user_permissions.set(request.data['user_permissions'])
-                logger.debug(f"User permissions updated for user {user.id}: {request.data['user_permissions']}")
 
             return Response(serializer.data)
 
@@ -247,10 +237,42 @@ class UserViewSet(viewsets.ViewSet):
         logger.info(f"User deleted successfully: {pk}")
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    @action(detail=False, methods=['post'])
+    def login(self, request):
+        """
+        Custom login endpoint for authentication and token generation.
+        """
+        logger.debug("Attempting login with data: %s", request.data)
+        username = request.data.get('username')
+        password = request.data.get('password')
 
-logger = logging.getLogger(__name__)
+        # Authenticate the user
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            if not user.is_active:
+                logger.warning(f"Inactive user attempted login: {username}")
+                return Response({"error": "User account is inactive."}, status=status.HTTP_403_FORBIDDEN)
 
-User = get_user_model()
+            # Generate JWT tokens
+            refresh = RefreshToken.for_user(user)
+            access_token = str(refresh.access_token)
+            logger.info(f"User {username} authenticated successfully.")
+
+            return Response({
+                'user': {
+                    'id': user.id,
+                    'username': user.username,
+                    'email': user.email,
+                    'is_superuser': user.is_superuser,
+                    'is_staff_user': user.is_staff_user,
+                    'is_visitor': user.is_visitor
+                },
+                'access': access_token,
+                'refresh': str(refresh)
+            }, status=status.HTTP_200_OK)
+        else:
+            logger.error(f"Failed login attempt for username: {username}")
+            return Response({"error": "Invalid username or password."}, status=status.HTTP_401_UNAUTHORIZED)
 
 
 class UsernameAvailabilityView(APIView):
@@ -327,7 +349,6 @@ def register_user(request):
             # If you have a confirmation password field, ensure it's the same as the original password
 
             # Hash the password before saving
-            hashed_password = make_password(password)
 
             try:
                 # Create a new user instance
@@ -344,10 +365,12 @@ def register_user(request):
                     state=state,
                     city=city,
                     pin=pin,
-                    password=hashed_password,
+                    password=password,
                     user_type=user_type,
                     gender=gender,
                     image=image,
+                    is_active=True,  # Ensure the user is active by default
+
                 )
 
                 # Log success
@@ -373,25 +396,6 @@ def register_user(request):
     else:
         # Render the user registration page if it's a GET request
         return render(request, 'create_user.html')
-
-
-def login_view(request):
-    if request.method == 'POST':
-        username = request.POST.get('username')
-        password = request.POST.get('password')
-
-        # Authenticate user
-        user = authenticate(request, username=username, password=password)
-
-        if user is not None:
-            auth_login(request, user)
-            # Redirect to a dashboard or home page after login
-            return redirect('dashboard')  # Replace 'dashboard' with your desired redirect view name
-        else:
-            # Add an error message if login fails
-            messages.error(request, 'Invalid username or password.')
-
-    return render(request, 'login.html')  # Render the login form for GET requests
 
 
 class UserSessionListCreateAPIView(generics.ListCreateAPIView):
@@ -455,11 +459,6 @@ def create_quiz_view(request):
     return render(request, 'quiz/create_quiz.html', {'subjects': subjects})
 
 
-from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib import messages
-from django.urls import reverse
-from .models import Quiz, Subject
-
 @login_required
 def update_quiz_view(request, pk):
     # Fetch the quiz to update
@@ -481,7 +480,7 @@ def update_quiz_view(request, pk):
         quiz.description = description
         quiz.subject = subject
 
-       # Save the updated quiz
+        # Save the updated quiz
         quiz.save()
 
         # Success message
@@ -492,7 +491,6 @@ def update_quiz_view(request, pk):
 
     # Render the update quiz form with the quiz and subjects context
     return render(request, 'quiz/update_quiz.html', {'quiz': quiz, 'subjects': subjects})
-
 
 
 @login_required
@@ -867,6 +865,7 @@ def update_quizname(request, pk):
 
     return render(request, 'quizname/update_quizname.html', {'quizname': quizname, 'quizzes': quizzes})
 
+
 @login_required
 def delete_quizname(request, pk):
     quizname = get_object_or_404(QuizName, pk=pk)
@@ -990,12 +989,12 @@ def get_units(request, subject_id):
         return JsonResponse({'error': 'Error loading units'}, status=500)
 
 
-
 from django.db import transaction
 import logging
 
 # Initialize logger
 logger = logging.getLogger(__name__)
+
 
 @login_required
 def create_topic_view(request):
@@ -1042,17 +1041,6 @@ def create_topic_view(request):
         'subjects': subjects,
         'units': units,
     })
-
-
-
-# Set up a logger
-logger = logging.getLogger(__name__)
-
-from django.shortcuts import get_object_or_404, render, redirect
-from django.contrib import messages
-from django.urls import reverse
-from .models import Topic, Unit, Subject
-from django.contrib.auth.decorators import login_required
 
 
 @login_required
@@ -1146,7 +1134,7 @@ def create_unit_view(request):
     if request.method == 'POST':
         title = request.POST.get('title')
         description = request.POST.get('description')
-        table_of_contents= request.FILES.get('image')
+        table_of_contents = request.FILES.get('image')
         subject_id = request.POST.get('subject')
 
         # Fetch the subject based on the ID
@@ -1173,13 +1161,6 @@ def create_unit_view(request):
     return render(request, 'unit/create_unit.html', {'subjects': subjects})
 
 
-from django.shortcuts import get_object_or_404, render, redirect
-from django.contrib import messages
-from django.contrib.auth.decorators import login_required
-from django.urls import reverse
-from .models import Unit
-
-
 @login_required
 def update_unit_view(request, pk):
     unit = get_object_or_404(Unit, pk=pk)
@@ -1199,7 +1180,6 @@ def update_unit_view(request, pk):
 
         # If an image is uploaded, replace the old one with the new one
 
-
         # Save the unit with the updated information
         unit.save()
 
@@ -1209,6 +1189,7 @@ def update_unit_view(request, pk):
 
     # If GET request, render the unit update form with the current unit data
     return render(request, 'unit/update_unit.html', {'unit': unit, 'subjects': subjects})
+
 
 # Delete Unit
 @login_required
@@ -1392,6 +1373,7 @@ def retrieve_blog_view(request, pk):
         'comments': comments,
     })
 
+
 # Like Blog
 def like_blog(request, blog_id):
     blog = get_object_or_404(Blog, id=blog_id)
@@ -1487,6 +1469,8 @@ def login(request):
 from django.contrib.auth import logout as auth_logout
 
 
+from django.utils.timezone import now
+
 def logout(request):
     logger.debug("Entering the logout function.")
 
@@ -1498,13 +1482,21 @@ def logout(request):
     auth_logout(request)
     logger.info("User logged out successfully.")
 
-    # Delete the session entry
-    UserSession.objects.filter(user=user, session_key=session_key).delete()
+    # Update the logout time in the user's session record
+    try:
+        user_session = UserSession.objects.filter(user=user, session_key=session_key).first()
+        if user_session:
+            user_session.logged_out_at = now()
+            user_session.save()
+            logger.info(f"Updated logout time for session {session_key} of user {user.username}.")
+        else:
+            logger.warning(f"No session found for user {user.username} with session key {session_key}.")
+    except Exception as e:
+        logger.error(f"Error updating logout time for session {session_key}: {str(e)}")
 
     messages.success(request, 'You have been logged out.')
     logger.debug("Redirecting to the open page after logout.")
     return redirect('dashboard')
-
 
 def dashboard_view(request):
     return render(request, 'dashboard.html')  # Replace with your actual template
@@ -1774,7 +1766,7 @@ class MockTestCreateView(LoginRequiredMixin, CreateView):
             mock_test.total_max_score = total_max_score
             mock_test.save(update_fields=['total_questions', 'total_max_score'])
             logger.info(
-            f"Mock Test '{mock_test.Exam_Name}' updated with totals: Questions={total_questions}, Max Score={total_max_score}.")
+                f"Mock Test '{mock_test.Exam_Name}' updated with totals: Questions={total_questions}, Max Score={total_max_score}.")
 
         return super().form_valid(form)
 
@@ -1825,7 +1817,7 @@ def mocktest_detailview(request, mocktest_id):
 
     # Fetch the test duration
     test_duration = int(mocktest.duration.total_seconds() // 60)
-    #test_duration = mocktest.duration
+    # test_duration = mocktest.duration
     logger.debug(f"Test duration: {test_duration}")
 
     # Get subject configurations for this mock test
@@ -2016,6 +2008,7 @@ def test_result(request, mocktest_id, submission_uuid):
         "percentage_score": percentage_score
     })
 
+
 def subject_list(request):
     """
     View to display a list of subjects.
@@ -2043,6 +2036,7 @@ def subject_detail(request, pk):
         'selected_topic': selected_topic,
     }
     return render(request, 'subject/subject_detail.html', context)
+
 
 """
 @login_required

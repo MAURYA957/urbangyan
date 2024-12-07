@@ -1,9 +1,10 @@
 {% extends "base.html" %}
+{% load custom_filters %}
 
 {% block content %}
 <div class="container py-4">
     <h2 class="text-center mb-4 animated fadeInDown">
-        Test Results for <strong>"{{ mocktest.Exam_Name }}"</strong>
+        <strong>Test Results for {{ mocktest.Exam_Name }}</strong>
     </h2>
 
     <!-- Progress Bar -->
@@ -61,10 +62,10 @@
         <ul class="list-group">
             {% for response in responses %}
                 <li class="list-group-item">
-                    <strong>{{ response.question }}</strong><br>
-                    Your Answer:
+                    <strong>{{ response.question|safe }}</strong><br>
+                    <strong>Your selected answer and description is :</strong>
                     {% if response.selected_option %}
-                        Option {{ response.selected_option }} and {{ response.answer_description }}
+                        Option {{ response.selected_option|safe }}, {{ response.answer_description|safe }}
                         {% if response.is_correct %}
                             <strong><span class="text-success">(Correct)</span></strong>
                         {% else %}
@@ -73,8 +74,8 @@
                     {% else %}
                        <strong><span class="text-warning">Not Attempted</span></strong>
                     {% endif %}<br>
-                    Correct Answer: Option {{ response.correct_answer }}<br>
-                    Explanation: {{ response.explanation }}
+                    Correct Answer: Option {{ response.correct_answer|safe }}<br>
+                    Explanation: {{ response.explanation|safe }}
                 </li>
             {% endfor %}
         </ul>
@@ -87,7 +88,7 @@
             <ul class="list-group">
                 {% for question in unattempted_questions %}
                     <li class="list-group-item animated fadeInUp">
-                        <strong>{{ question.question }}</strong><br>
+                        <strong>{{ question.question|safe }}</strong><br>
                         <span class="text-muted">You did not attempt this question.</span>
                     </li>
                 {% endfor %}

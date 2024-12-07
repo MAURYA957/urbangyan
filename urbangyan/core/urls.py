@@ -17,7 +17,7 @@ from .views import (
     update_quizname, delete_quizname, topic_user, SubjectViewSet, UnitViewSet, OfferCreateAPIView, OfferUpdateAPIView,
     OfferDeleteAPIView, OfferManagement, get_units, MockTestViewSet, MockTestListView,
     MockTestCreateView, MockTestUpdateView, MockTestDeleteView, MockTest_user, test_submit,
-    mocktest_detailview, test_result, register_user, login_view
+    mocktest_detailview, test_result, register_user
 )
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
@@ -58,7 +58,7 @@ urlpatterns = [
 
     # Home view
     path('', dashboard_view, name='dashboard'),
-    path('login/', login_view, name='login'),
+    path('login/', login, name='login'),
     path('logout/', logout, name='logout'),
     #path('ckeditor/', include('ckeditor_uploader.urls')),
 

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load custom_filters %}
 
 {% block content %}
 <html lang="en">
@@ -113,9 +114,9 @@
             <button style="margin-left: 10%; float: right; background: green;">Duration: {{ duration }} minutes</button>
         </div>
         <div class="instructions">
-            <center><h2><strong>Instructions:</strong></h2></center>
             <center><h3><strong style="font-size:30px; font-family:verdana; color: blue; margin-right: 6%">{{ mocktest.Exam_Name }}</strong></h3></center>
-            {{ mocktest.Instructions }}
+            <center><h2><strong>Instructions:</strong></h2></center>
+            {{ mocktest.Instructions|safe }}
         </div>
 
         <form method="get" action="{% url 'mocktest_question_detail' mocktest.id %}" onsubmit="showLoading()">

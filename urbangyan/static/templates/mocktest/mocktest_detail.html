@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+ load custom_filters %}
 
 {% block content %}
 <html lang="en">
@@ -86,22 +87,22 @@
         <div class="question-container">
             {% for question in questions %}
             <fieldset id="question-{{ question.id }}">
-                <legend>{{ forloop.counter }}. {{ question.question }}</legend>
+                <legend>{{ forloop.counter }}. {{ question.question|safe }}</legend>
                 <div>
                     <input type="radio" name="question_{{ question.id }}" value="1" id="q{{ question.id }}_1" onclick="updateQuestionStatus({{ question.id }}, 1)">
-                    <label for="q{{ question.id }}_1">{{ question.option_1 }}</label>
+                    <label for="q{{ question.id }}_1">{{ question.option_1|safe }}</label>
                 </div>
                 <div>
                     <input type="radio" name="question_{{ question.id }}" value="2" id="q{{ question.id }}_2" onclick="updateQuestionStatus({{ question.id }}, 2)">
-                    <label for="q{{ question.id }}_2">{{ question.option_2 }}</label>
+                    <label for="q{{ question.id }}_2">{{ question.option_2|safe }}</label>
                 </div>
                 <div>
                     <input type="radio" name="question_{{ question.id }}" value="3" id="q{{ question.id }}_3" onclick="updateQuestionStatus({{ question.id }}, 3)">
-                    <label for="q{{ question.id }}_3">{{ question.option_3 }}</label>
+                    <label for="q{{ question.id }}_3">{{ question.option_3|safe }}</label>
                 </div>
                 <div>
                     <input type="radio" name="question_{{ question.id }}" value="4" id="q{{ question.id }}_4" onclick="updateQuestionStatus({{ question.id }}, 4)">
-                    <label for="q{{ question.id }}_4">{{ question.option_4 }}</label>
+                    <label for="q{{ question.id }}_4">{{ question.option_4|safe }}</label>
                 </div>
               <!-- Mark for Review Button -->
                 <button type="button" class="btn btn-warning btn-sm" id="mark-btn-{{ question.id }}" onclick="markForReview({{ question.id }})">Mark for Review</button>
