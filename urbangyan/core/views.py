@@ -1,3 +1,7 @@
+from datetime import timedelta
+from urllib.request import Request
+
+from django.contrib.contenttypes.models import ContentType
 from django.http import JsonResponse
 from django.db import IntegrityError
 from django.shortcuts import render, redirect
@@ -8,7 +12,7 @@ from rest_framework.decorators import action
 from django.urls import reverse_lazy
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_GET
+from django.core.paginator import Paginator
 from rest_framework import viewsets, generics
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -20,7 +24,8 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import Blog, User, QuizResult, UserSession, Comment, Offer, MockTestSubjectConfig, Quiz, QuizName, Subject
+from .models import Blog, User, QuizResult, UserSession, Comment, Offer, MockTestSubjectConfig, Quiz, Subject, SavedJob, \
+    ExperienceLevel, Order, Cart
 from django.contrib.auth import authenticate, login as auth_login
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
@@ -38,7 +43,7 @@ from .serializers import (
     QuestionsSerializer,
     UserSerializer,
     CustomTokenObtainPairSerializer, UserSessionSerializer, SubjectSerializer, UnitSerializer, OfferSerializer,
-    MockTestSerializer
+    MockTestSerializer, SavedJobSerializer, ExperienceLevelSerializer, OrderSerializer, CartSerializer
 )
 
 # Set up a logger
@@ -429,8 +434,38 @@ def list_quizzes_view(request):
 
 
 def user_quizzes_view(request):
-    quizzes = Quiz.objects.all()
-    return render(request, 'quiz/quiz_view.html', {'quizzes': quizzes})
+    """
+    Renders the quiz view page with all subjects.
+    """
+    subjects = Subject.objects.all()  # Fetch all subjects
+    return render(request, 'quiz/quiz_view.html', {'subjects': subjects})
+
+
+def quizzes_by_subject(request, subject_id):
+    """
+    Returns quizzes filtered by subject ID as JSON response.
+    """
+    try:
+        subject = get_object_or_404(Subject, id=subject_id)
+
+        # Filter quizzes by the subject
+        quizzes = Quiz.objects.filter(subject=subject)
+
+        # Construct the data to send as JSON
+        quiz_data = [{
+            'id': quiz.id,
+            'subject': quiz.subject.name if quiz.subject else "Unknown",
+            'quiz': quiz.quiz,
+            'description': quiz.description or "No description provided",
+            'no_of_questions': quiz.No_of_Questions or 0,
+            'duration': str(quiz.duration) if quiz.duration else "Not specified",
+        } for quiz in quizzes]
+
+        return JsonResponse({'quizzes': quiz_data})
+    except Exception as e:
+        print(f"Error fetching quizzes: {e}")
+        return JsonResponse({'error': 'Failed to fetch quizzes.'}, status=500)
+
 
 
 @login_required
@@ -439,13 +474,17 @@ def create_quiz_view(request):
 
     if request.method == 'POST':
         quizname = request.POST.get('quizname')
+        duration = request.POST.get('duration')
+        No_of_Questions = request.POST.get('No_of_Questions')
         description = request.POST.get('description')
-        subject_id = request.POST.get('subject')  # ForeignKey field
+        subject_id = request.POST.get('subject') # ForeignKey field
         subject = get_object_or_404(Subject, pk=subject_id)
 
         # Create the quiz object
         Quiz.objects.create(
             quiz=quizname,
+            duration=duration,
+            No_of_Questions=No_of_Questions,
             description=description,
             subject=subject,
         )
@@ -793,101 +832,15 @@ def list_questions_view(request):
     questions = Questions.objects.all()
     return render(request, 'question/questions_list.html', {'questions': questions})
 
-
-def quizname_user(request, quiz_id):
-    quiz = get_object_or_404(Quiz, id=quiz_id)  # Fetch the quiz object or return 404 if not found
-    quiznames = QuizName.objects.filter(quiz=quiz)  # Filter QuizName objects by the fetched quiz
-    return render(request, 'quizname/quizname_user.html',
-                  {'quiznames': quiznames})  # Pass filtered QuizName objects to the template
-
-
-@login_required
-def quiznamelist(request):
-    quiznames = QuizName.objects.all()  # Changed variable name to plural for clarity
-    return render(request, 'quizname/quiznamelist.html', {'quiznames': quiznames})  # Updated context variable to plural
-
-
-@require_GET
-def get_quiznames(request):
-    quiz_id = request.GET.get('quiz_id')
-    quiznames = QuizName.objects.filter(quiz_id=quiz_id).values('id', 'quizname')
-    quiznames_list = list(quiznames)  # Convert to a list of dictionaries
-    return JsonResponse(quiznames_list, safe=False)
-
-
-@login_required
-def create_quizename_view(request):
-    if request.method == 'POST':
-        quizname_text = request.POST.get('quizname')  # Get the quiz name from the POST request
-        quiz_id = request.POST.get('quiz')  # Get the selected quiz ID from the POST request
-
-        # Get the quiz instance from the database using the quiz_id
-        quiz = get_object_or_404(Quiz, pk=quiz_id)
-
-        # Create a new QuizName instance
-        QuizName.objects.create(
-            quiz=quiz,  # Link to the selected quiz
-            quizname=quizname_text,  # Assign the quiz name
-            No_of_Questions=request.POST.get('No_of_Questions', 10),  # Default to 10 if not provided
-            duration=request.POST.get('duration', 60)  # Default to 60 minutes if not provided
-        )
-
-        # Redirect to the list view after creating the quiz name
-        return redirect(reverse('quizlistview'))
-
-    # Get all quizzes to populate the quiz dropdown in the form
-    quizzes = Quiz.objects.all()
-
-    # Render the template and pass the quizzes to it
-    return render(request, 'quizname/create_quizname.html', {'quizzes': quizzes})
-
-
-@login_required
-def update_quizname(request, pk):
-    quizname = get_object_or_404(QuizName, pk=pk)
-    quizzes = Quiz.objects.all()  # Fetch all quizzes, not just those related to this quizname
-
-    if request.method == 'POST':
-        # Update the quizname (the name of the quiz)
-        quizname.quizname = request.POST.get('quizname')
-        quizname.No_of_Questions = request.POST.get('No_of_Questions', quizname.No_of_Questions)  # Optional field
-        quizname.duration = request.POST.get('duration', quizname.duration)  # Optional field
-
-        # If a new quiz is selected
-        new_quiz_id = request.POST.get('quiz')
-        if new_quiz_id:
-            quizname.quiz = get_object_or_404(Quiz, pk=new_quiz_id)  # Update associated quiz
-
-        quizname.save()  # Save updated quizname
-
-        # Redirect to the quiz list view after update
-        return redirect(reverse('quizlistview'))
-
-    return render(request, 'quizname/update_quizname.html', {'quizname': quizname, 'quizzes': quizzes})
-
-
-@login_required
-def delete_quizname(request, pk):
-    quizname = get_object_or_404(QuizName, pk=pk)
-
-    if request.method == 'POST':
-        quizname.delete()  # Delete the quizname object from the database
-        return redirect(reverse('quizlistview'))  # Redirect after deletion
-
-    return render(request, 'quizname/delete_quizname.html', {'quizname': quizname})
-
-
 @login_required
 def create_question_view(request):
     if request.method == 'POST':
         try:
             quiz_id = request.POST.get('quiz')  # Get the selected quiz ID from the POST request
-            quizname_id = request.POST.get('quizname')  # Get the selected quiz name ID from the POST request
             subject_id = request.POST.get('subject')  # Get the selected subject ID from the POST request
             question_level = request.POST.get('question_level')  # Get the selected question level from the POST request
 
             quiz = get_object_or_404(Quiz, pk=quiz_id)  # Get the selected quiz instance
-            quizname = get_object_or_404(QuizName, pk=quizname_id)  # Get the selected QuizName instance
             subject = get_object_or_404(Subject, pk=subject_id)  # Get the selected Subject instance
 
             question = request.POST.get('question')
@@ -900,7 +853,6 @@ def create_question_view(request):
 
             # Create the question
             Questions.objects.create(
-                quizname=quizname,
                 quiz=quiz,
                 Subject=subject,
                 question_level=question_level,
@@ -925,12 +877,10 @@ def create_question_view(request):
 
     # Fetch all quizzes, quiz names, and subjects for the dropdowns
     quizzes = Quiz.objects.all()
-    quiznames = QuizName.objects.all()
     subjects = Subject.objects.all()
 
     return render(request, 'question/create_question.html', {
         'quizzes': quizzes,
-        'quiznames': quiznames,
         'subjects': subjects,
     })
 
@@ -938,12 +888,9 @@ def create_question_view(request):
 @login_required
 def update_question_view(request, pk):
     question = get_object_or_404(Questions, pk=pk)
-    quiznames = QuizName.objects.filter(quiz=question.quiz).all()  # Get quiz names associated with the quiz
     subjects = Subject.objects.all()  # Fetch all subjects for the dropdown
 
     if request.method == 'POST':
-        # Use the selected quizname and subject from the POST request
-        question.quizname = get_object_or_404(QuizName, pk=request.POST.get('quizname'))
         question.Subject = get_object_or_404(Subject, pk=request.POST.get('subject'))  # New subject field
         question.question = request.POST.get('question')
         question.option_1 = request.POST.get('option_1')
@@ -963,7 +910,6 @@ def update_question_view(request, pk):
 
     return render(request, 'question/update_question.html', {
         'question': question,
-        'quiznames': quiznames,
         'subjects': subjects,  # Pass subjects to the template for the dropdown
     })
 
@@ -1502,7 +1448,7 @@ def dashboard_view(request):
     return render(request, 'dashboard.html')  # Replace with your actual template
 
 
-def quiz_view(request, quiz_id=None):
+"""def quiz_view(request, quiz_id=None):
     if quiz_id:
         # Filter the questions based on the quiz
         quiz = Quiz.objects.get(id=quiz_id)
@@ -1517,75 +1463,74 @@ def quiz_view(request, quiz_id=None):
         'quizzes': quizzes if not quiz_id else None,
     }
     return render(request, 'quiz_view.html', context)
+"""
 
 
-def questions_view(request, quizname_id):
-    quizname = get_object_or_404(QuizName, id=quizname_id)  # Get QuizName object
-    no_of_questions = quizname.No_of_Questions
-    # Fetch 50 random questions from the quizname
-    questions = Questions.objects.filter(quizname=quizname).order_by('?')[:no_of_questions]  # Filter by QuizName
+def questions_view(request, quiz_id):
+    # Get the quiz object or return 404 if not found
+    quiz = get_object_or_404(Quiz, id=quiz_id)
 
-    # Pass the quiz duration to the template
-    quiz_duration = quizname.duration  # Assuming duration is in minutes
+    # Fetch the number of questions to display
+    no_of_questions = quiz.No_of_Questions  # Assuming you use snake_case for field names
 
+    # Fetch random questions from the quiz
+    questions = Questions.objects.filter(quiz=quiz).order_by('?')[:no_of_questions]
+
+    # Get the quiz duration (in case you want to display it or use it for a timer)
+    quiz_duration = quiz.duration
+
+    # Handle form submission (POST request)
     if request.method == 'POST':
-        return questions_submit(request, quizname, questions)
+        return questions_submit(request, quiz_id)
 
+    # Check if there are no questions available
+    no_questions_message = None
+    if not questions:
+        no_questions_message = "No questions available for this quiz."
+
+    # Render the template and pass the quiz and questions context
     return render(request, 'question/questions_view.html', {
-        'quizname': quizname,
+        'quiz': quiz,
         'questions': questions,
-        'quiz_duration': quiz_duration  # Pass duration to template
+        'quiz_duration': quiz_duration,
+        'no_questions_message': no_questions_message,  # Pass the message to the template
     })
 
-
-def questions_submit(request, quizname_id):
-    print(f"Received quizname_id: {quizname_id}")
-
-    # Fetch the quizname with the given ID
-    quizname = get_object_or_404(QuizName, id=quizname_id)  # Assuming QuizName is your model for quiz names
-    print(f"Quizname found: {quizname}")
-
-    # Fetch related questions for the quizname
-    questions = Questions.objects.filter(quizname=quizname)
-    print(f"Questions found for quizname: {len(questions)}")
+def questions_submit(request, quiz_id):
+    quiz = get_object_or_404(Quiz, id=quiz_id)
+    questions = Questions.objects.filter(quiz=quiz)
 
     total_questions = len(questions)
     correct_answers = 0
     wrong_answers = 0
     attempted_questions = 0
 
-    # Process user answers
     for question in questions:
         selected_option = request.POST.get(f'question_{question.id}')
-        print(f"Question {question.id}, Selected Option: {selected_option}")
 
-        if selected_option:  # If the user selected an option
+        if selected_option and selected_option.isdigit():
             attempted_questions += 1
-            # Check if the answer is correct
             if int(selected_option) == question.answer:
                 correct_answers += 1
             else:
                 wrong_answers += 1
 
     score = correct_answers
-    print(f"Correct Answers: {correct_answers}, Wrong Answers: {wrong_answers}, Score: {score}")
 
-    # Attempt to save quiz results
     try:
         QuizResult.objects.create(
             user=request.user,
-            quizname=quizname,  # Saving the quizname association
+            quiz=quiz,
             total_questions=total_questions,
             attempted_questions=attempted_questions,
             correct_answers=correct_answers,
             wrong_answers=wrong_answers,
             score=score
         )
-        print("quiz result saved successfully")
+        logger.info(f"Quiz result saved for user {request.user.id}")
     except Exception as e:
-        print(f"Error saving quiz result: {e}")
+        logger.error(f"Error saving quiz result: {e}")
 
-    # Prepare result summary for rendering
     result_summary = {
         'total_questions': total_questions,
         'attempted_questions': attempted_questions,
@@ -1595,13 +1540,10 @@ def questions_submit(request, quizname_id):
     }
 
     return render(request, 'question/questions_result.html', {
-        'quizname': quizname,  # Passing quizname to the template
+        'quiz': quiz,
         'result_summary': result_summary,
     })
 
-
-def quizname_user_view(request):
-    return render(request, 'quizname_user_view.html')
 
 
 # Create Offer API View
@@ -1798,12 +1740,12 @@ def MockTest_user(request):
     mocktests = MockTest.objects.all()  # Retrieve all MockTest instances
     return render(request, 'mocktest/mock_test_user.html', {'mocktests': mocktests})
 
-
+@login_required()
 def instructions_view(request, mocktest_id):
     mocktest = get_object_or_404(MockTest, id=mocktest_id)
     return render(request, 'mocktest/instructions.html', {'mocktest': mocktest, 'duration': mocktest.duration})
 
-
+@login_required()
 def mocktest_detailview(request, mocktest_id):
     logger.debug(f"Fetching MockTest with ID: {mocktest_id}")
 
@@ -2065,3 +2007,232 @@ def reply_comment(request, blog_pk, comment_pk):
     return JsonResponse({'error': 'Invalid request'}, status=400)
 
 """
+
+# Fetch current affairs
+import os
+import requests
+from dotenv import load_dotenv
+
+load_dotenv()
+
+def fetch_current_affairs():
+    API_KEY = os.getenv('NEWS_API_KEY_FOR_CURRENTS')
+    url = f"https://api.currentsapi.services/v1/latest-news?apiKey={API_KEY}&country=in&language=hi"
+    response = requests.get(url)
+
+    if response.status_code == 200:
+        data = response.json()
+        articles = data.get('news', [])
+        headlines = [{"title": article['title'], "url": article['url']} for article in articles[:10]]
+        return headlines
+    else:
+        print(f"Error fetching news: {response.status_code}, {response.text}")
+        return []
+
+
+# View to display current affairs
+def CurrentAffaires(request):
+    current_affairs = fetch_current_affairs()
+    return render(request, 'news.html', {'current_affairs': current_affairs})
+
+from rest_framework import viewsets
+from .models import Advertisement, Job, JobType, JobCategory, JobStage
+from .serializers import (
+    AdvertisementSerializer,
+    JobSerializer,
+    JobTypeSerializer,
+    JobCategorySerializer,
+    JobStageSerializer,
+)
+
+class AdvertisementViewSet(viewsets.ModelViewSet):
+    queryset = Advertisement.objects.all()
+    serializer_class = AdvertisementSerializer
+
+class JobTypeViewSet(viewsets.ModelViewSet):
+    queryset = JobType.objects.all()
+    serializer_class = JobTypeSerializer
+
+class JobCategoryViewSet(viewsets.ModelViewSet):
+    queryset = JobCategory.objects.all()
+    serializer_class = JobCategorySerializer
+
+class JobStageViewSet(viewsets.ModelViewSet):
+    queryset = JobStage.objects.all()
+    serializer_class = JobStageSerializer
+
+class JobViewSet(viewsets.ModelViewSet):
+    queryset = Job.objects.all()
+    serializer_class = JobSerializer
+
+
+class SavedJobViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing saved jobs.
+    """
+    queryset = SavedJob.objects.all()
+    serializer_class = SavedJobSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        """
+        Filter saved jobs to only show those saved by the currently authenticated user.
+        """
+        return SavedJob.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        """
+        Automatically associate the saved job with the currently authenticated user.
+        """
+        serializer.save(user=self.request.user)
+
+
+
+def sarkari_jobs(request):
+    sarkari_type = JobType.objects.get(name="Sarkari")
+    jobs = Job.objects.filter(job_type=sarkari_type).order_by('-created_at')
+    paginator = Paginator(jobs, 20)  # 20 jobs per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    return render(request, 'jobs/sarkari_jobs.html', {'page_obj': page_obj})
+
+def private_jobs(request):
+    """
+    View to display Private jobs.
+    """
+    private_type = JobType.objects.get(name="Private")
+    jobs = Job.objects.filter(job_type=private_type).order_by('-created_at')
+    paginator = Paginator(jobs, 20)  # 20 jobs per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    return render(request, 'jobs/private_jobs.html', {'page_obj': page_obj})
+
+# List and Create API View
+
+class ExperienceLevelViewSet(viewsets.ModelViewSet):
+    queryset = ExperienceLevel.objects.all()
+    serializer_class = ExperienceLevelSerializer
+
+
+class CartViewSet(viewsets.ModelViewSet):
+    queryset = Cart.objects.all()
+    serializer_class = CartSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        return Cart.objects.filter(user=user)
+
+    @action(detail=True, methods=['post'])
+    def update_quantity(self, request, pk=None):
+        cart_item = self.get_object()
+        quantity = request.data.get('quantity', 1)
+        cart_item.quantity = quantity
+        cart_item.save()
+        return Response(CartSerializer(cart_item).data)
+
+
+class OrderViewSet(viewsets.ModelViewSet):
+    queryset = Order.objects.all()
+    serializer_class = OrderSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        return Order.objects.filter(user=user)
+
+    @action(detail=True, methods=['post'])
+    def complete_order(self, request, pk=None):
+        order = self.get_object()
+        # Assuming payment completion logic here
+        order.total_amount = sum([cart_item.total_price() for cart_item in Cart.objects.filter(user=request.user)])
+        order.save()
+        return Response(OrderSerializer(order).data)
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from .models import Cart, Order
+
+@login_required
+def add_to_cart(request, item_type, item_id):
+    """
+    Add an item (course or test) to the cart.
+    """
+    # Determine the model based on item_type
+    if item_type == 'course':
+        model = Course
+    elif item_type == 'test':
+        model = MockTest
+    else:
+        return JsonResponse({'error': 'Invalid item type'}, status=400)
+
+    # Fetch the item
+    item = get_object_or_404(model, id=item_id)
+
+    # Check if the item is already in the cart
+    cart_item, created = Cart.objects.get_or_create(
+        user=request.user,
+        product_id=item.id,
+        product_type=ContentType.objects.get_for_model(model),
+        defaults={'quantity': 1},
+    )
+
+    # If the item already exists in the cart, increase the quantity
+    if not created:
+        cart_item.quantity += 1
+        cart_item.save()
+
+    return redirect('view_cart')
+
+
+@login_required
+def view_cart(request):
+    """
+    Display the cart with all items.
+    """
+    cart_items = Cart.objects.filter(user=request.user)
+    total_price = sum(item.total_price() for item in cart_items)
+    return render(request, 'order/view_cart.html', {'cart_items': cart_items, 'total_price': total_price})
+
+
+@login_required
+def checkout(request):
+    """
+    Checkout view to handle payment processing.
+    """
+    cart_items = Cart.objects.filter(user=request.user)
+
+    if not cart_items:
+        return redirect('view_cart')
+
+    # Example: Simulate payment success
+    if request.method == 'POST':
+        # Payment logic here
+        cart_items.delete()  # Clear cart after payment
+        return render(request, 'order/payment_success.html')
+
+    total_price = sum(item.total_price() for item in cart_items)
+    return render(request, 'order/checkout.html', {'cart_items': cart_items, 'total_price': total_price})
+
+@login_required
+def payment(request, order_id):
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+    if request.method == 'POST':
+        # Simulate payment completion
+        order.payment_status = "Completed"
+        order.save()
+        return redirect('payment_success', order_id=order.id)
+
+    return render(request, 'order/payment.html', {'order': order})
+
+
+@login_required
+def payment_success(request, order_id):
+    order = Order.objects.get(id=order_id)
+
+    # If the order is already paid, update its validity
+    if order and not order.valid_until:
+        order.valid_until = order.created_at + timedelta(days=365)
+        order.save()
+
+    return render(request, 'payment_success.html', {'order': order})

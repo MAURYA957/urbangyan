@@ -1,0 +1,53 @@
+# Core Django framework
+django>=4.2,<5.0  # Latest stable version of Django for building web applications.
+
+# PostgreSQL adapter for Python
+psycopg2>=2.9,<3.0  # Latest version for connecting Django to a PostgreSQL database.
+
+# Django REST framework for building APIs
+djangorestframework>=3.14,<4.0  # Latest version for building RESTful APIs in Django.
+
+# JSON Web Token authentication for DRF
+djangorestframework-simplejwt>=5.2,<6.0  # Latest version for JWT authentication in Django REST framework.
+
+# Image processing library
+Pillow>=9.4,<10.0  # Latest version for image handling capabilities in Django (e.g., resizing, format conversion).
+
+# Automatic generation of Swagger/OpenAPI documentation for DRF APIs
+drf-yasg>=1.22,<2.0  # Latest version for generating interactive API documentation for DRF-based APIs.
+
+# Handling Cross-Origin Resource Sharing (CORS) headers
+django-cors-headers>=3.12,<4.0  # Latest version for managing CORS headers to allow or restrict cross-origin requests.
+
+# Debugging tool for Django development
+django-debug-toolbar>=4.0,<5.0  # Latest version for providing a toolbar with debugging information in Django development.
+
+# Logging handler for concurrent logging in multi-threaded applications
+concurrent-log-handler>=0.9,<1.0  # Latest version for enabling concurrent logging in multi-threaded Django applications.
+
+# CKEditor integration for rich text editing in Django
+django-ckeditor>=6.1,<7.0  # Latest version for providing a rich text editor (CKEditor) in Django applications.
+
+# Django crispy forms for better form rendering
+django-crispy-forms>=1.14,<2.0  # Latest version for elegant and customizable form rendering in Django.
+
+# HTML parsing and web scraping libraries
+beautifulsoup4>=4.12,<5.0  # Latest version for parsing HTML and XML documents, useful in web scraping.
+lxml>=4.9,<5.0  # Latest version for efficient parsing and manipulation of XML and HTML documents.
+
+# Google API client for authentication and accessing Google services
+#google-auth>=2.20,<3.0  # Latest version for Google authentication services.
+#google-auth-oauthlib>=0.7,<1.0  # Latest version for OAuth2 support in Google authentication.
+#google-auth-httplib2>=0.2,<1.0  # Latest version for HTTP transport in Google authentication.
+#google-api-python-client>=2.70,<3.0  # Latest version of the official client library for Google APIs.
+
+# Asynchronous task queue for handling background tasks
+#celery>=5.2,<6.0  # Latest version for asynchronous task processing in Django.
+
+# Redis support for Celery to use Redis as the message broker
+#celery[redis]>=5.2,<6.0  # Latest version of Celery with Redis support as the message broker.
+
+# Django integration for periodic tasks with Celery
+#django-celery-beat>=2.4,<3.0  # Latest version for periodic task scheduling in Django using Celery.
+
+pip install charset_normalizer

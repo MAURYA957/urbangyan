@@ -215,18 +215,6 @@
     {% if user.is_authenticated %}
     {% if user.is_staff_user or user.is_superuser %}
         <div class="col-md-6">
-             <div class="card">
-                <img src="{% static 'dashboard/quizname.png' %}" class="card-img-top" alt="Quiz Names">
-                <div class="card-body">
-                    <h5 class="card-title">Quiz Names</h5>
-                    <p class="card-text">Browse available quiz names and save them for later.</p>
-                    <a href="#" class="btn btn-view btn-custom">View</a>
-                    <a href="/createquizname/" class="btn btn-create btn-custom">Create</a>
-                    <a href="/quizlistview/" class="btn btn-alter btn-custom">Alter</a>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6">
             <div class="card">
                 <img src="{% static 'dashboard/questions.png' %}" class="card-img-top" alt="Questions">
                 <div class="card-body">

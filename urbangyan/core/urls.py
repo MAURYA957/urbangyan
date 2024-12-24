@@ -13,11 +13,13 @@ from .views import (
     CustomTokenObtainPairView, UsernameAvailabilityView,
     QuestionsViewSet, login,
     LoginAPIView,
-    dashboard_view, logout, UserSessionListCreateAPIView, UserSessionDetailAPIView, get_quiznames,
-    update_quizname, delete_quizname, topic_user, SubjectViewSet, UnitViewSet, OfferCreateAPIView, OfferUpdateAPIView,
+    dashboard_view, logout, UserSessionListCreateAPIView, UserSessionDetailAPIView,
+    topic_user, SubjectViewSet, UnitViewSet, OfferCreateAPIView, OfferUpdateAPIView,
     OfferDeleteAPIView, OfferManagement, get_units, MockTestViewSet, MockTestListView,
     MockTestCreateView, MockTestUpdateView, MockTestDeleteView, MockTest_user, test_submit,
-    mocktest_detailview, test_result, register_user
+    mocktest_detailview, test_result, register_user, user_quizzes_view, quizzes_by_subject, AdvertisementViewSet,
+    JobTypeViewSet, JobCategoryViewSet, JobStageViewSet, JobViewSet, SavedJobViewSet, ExperienceLevelViewSet,
+    CartViewSet, OrderViewSet
 )
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
@@ -52,6 +54,15 @@ router.register(r'questions', QuestionsViewSet, basename='question')
 router.register(r'subjects', SubjectViewSet, basename='subject')
 router.register(r'units', UnitViewSet, basename='unit')
 router.register(r'mocktests', MockTestViewSet, basename='mocktests')
+router.register(r'advertisements', AdvertisementViewSet)
+router.register(r'job-types', JobTypeViewSet)
+router.register(r'job-categories', JobCategoryViewSet)
+router.register(r'job-stages', JobStageViewSet)
+router.register(r'jobs', JobViewSet)
+router.register(r'saved-jobs', SavedJobViewSet)
+router.register(r'experience-level', ExperienceLevelViewSet)
+router.register(r'cart', CartViewSet)
+router.register(r'order', OrderViewSet)
 
 # Defining the URL patterns
 urlpatterns = [
@@ -110,30 +121,23 @@ urlpatterns = [
     #path('questions_view/', views.list_questions_view, name='questions-list-template'),
 
     # quiz list and detail views
-    path('questions_view/<int:quizname_id>/', views.questions_view, name='questions_view'),
+    path('questions_view/<int:quiz_id>/', views.questions_view, name='questions_view'),
     # View to display the quiz and questions
-    path('questions_view/<int:quizname_id>/submit/', views.questions_submit, name='questions_submit'),
+    path('questions_view/<int:quiz_id>/submit/', views.questions_submit, name='questions_submit'),
     # URL to handle quiz submission
 
     # URL to save result (if you have result-saving logic)
-    path('questions_view/<int:quizname_id>/save-result/', views.questions_submit, name='save-questions-result'),
+    path('questions_view/<int:quiz_id>/save-result/', views.questions_submit, name='save-questions-result'),
 
 
     #Quize template url
     path('quizzes/', views.list_quizzes_view, name='quiz-list-template'),
-    path('quiz_view/', views.user_quizzes_view, name='user_quizzes_view'),
     path('quizzes/create/', views.create_quiz_view, name='quiz-create-template'),
     path('quizzes/<int:pk>/update/', views.update_quiz_view, name='quiz-update-template'),
     path('quizzes/<int:pk>/delete/', views.delete_quiz_view, name='quiz-delete-template'),
+    path('quizzes/<int:subject_id>/', quizzes_by_subject, name='quizzes_by_subject'),
+    path('quiz_view/', user_quizzes_view, name='quiz_view'),
 
-
-    # quizname urls URLs
-    path('quizname_user/<int:quiz_id>/', views.quizname_user, name='quizname_user'),
-    path('quizlistview/', views.quiznamelist, name='quizlistview'),
-    path('createquizname/', views.create_quizename_view, name='create_quizname'),
-    path('get-quiznames/', get_quiznames, name='get-quiznames'),
-    path('quizname/update/<int:pk>/', update_quizname, name='update_quizname'),
-    path('quizname/delete/<int:pk>/', delete_quizname, name='delete_quizname'),
 
     # Course  User URLs
     path('course_user/', views.course_user, name='course-user-template'),
@@ -185,6 +189,23 @@ urlpatterns = [
     path('mock-test/<int:mocktest_id>/submit/', test_submit, name='mocktest_submit'),
     path('mock-test/<int:mocktest_id>/result/<uuid:submission_uuid>/', views.test_result, name='mocktest_result'),
 
+    #News
+    path('news/', views.CurrentAffaires, name='news'),
+
+    #Jobs link
+    path('sarkari-jobs/', views.sarkari_jobs, name='sarkari_jobs'),
+    path('private-jobs/', views.private_jobs, name='private_jobs'),
+
+    # Add to cart: item_type can be 'course' or 'test'
+    path('add-to-cart/<str:item_type>/<int:item_id>/', views.add_to_cart, name='add_to_cart'),
+
+    # View cart
+    path('cart/', views.view_cart, name='view_cart'),
+
+    # Proceed to checkout
+    path('checkout/', views.checkout, name='checkout'),
+    path('payment/<int:order_id>/', views.payment, name='payment'),
+    path('payment-success/<int:order_id>/', views.payment_success, name='payment_success'),
 
 ]
 

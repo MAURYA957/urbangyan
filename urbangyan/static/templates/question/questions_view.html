@@ -1,80 +1,211 @@
 {% extends "base.html" %}
+ load custom_filters %}
 
 {% block content %}
-<div class="container mt-4">
-    <!-- quiz Title -->
-    <h1 class="text-center text-white p-3" style="background-color: #f8d8c0; border-radius: 8px;">{{ quizname.name }}</h1> <!-- Light orange background for the title -->
-
-    <!-- Timer and Submit button in top-right corner -->
-    <div class="d-flex justify-content-end mb-4">
-        <div class="p-2">
-            <h4 id="timer" class="text-dark" style="font-weight: 700;">Time Left: {{ quiz_duration }}:00</h4> <!-- Use the quiz duration dynamically -->
-        </div>
-        <div class="p-2">
-            <button type="submit" form="quizForm" class="btn btn-success btn-lg">Submit Quiz</button> <!-- Large Submit button -->
-        </div>
-    </div>
-
-    <!-- quiz Form -->
-    <form id="quizForm" method="POST" action="{% url 'questions_submit' quizname.id %}">
-    {% csrf_token %}
-    <div class="row bg-light p-4 rounded shadow-sm">
-        {% for question in questions %}
-            <div class="col-md-6 mb-4">
-                <div class="card quiz-card p-3 shadow-sm">
-                    <!-- Display question number and text -->
-                    <h4 class="text-dark">{{ forloop.counter }}. {{ question.question|safe }}</h4>
-
-                    <!-- Display multiple choice options for the question -->
-                    <div class="form-check">
-                        <input class="form-check-input" type="radio" name="question_{{ question.id }}" value="1" id="option1_{{ question.id }}">
-                        <label class="form-check-label" for="option1_{{ question.id }}">
-                            {{ question.option_1|safe }}
-                        </label>
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="radio" name="question_{{ question.id }}" value="2" id="option2_{{ question.id }}">
-                        <label class="form-check-label" for="option2_{{ question.id }}">
-                            {{ question.option_2|safe }}
-                        </label>
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="radio" name="question_{{ question.id }}" value="3" id="option3_{{ question.id }}">
-                        <label class="form-check-label" for="option3_{{ question.id }}">
-                            {{ question.option_3|safe }}
-                        </label>
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="radio" name="question_{{ question.id }}" value="4" id="option4_{{ question.id }}">
-                        <label class="form-check-label" for="option4_{{ question.id }}">
-                            {{ question.option_4|safe }}
-                        </label>
-                    </div>
-                </div>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ mocktest.name }} - Mock Test</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .sticky-header {
+            position: sticky;
+            top: 0;
+            background-color: #b6e5f6;
+            z-index: 1000;
+            padding: 10px;
+            border: 2px solid #6680f5;
+        }
+        .sticky-header p {
+            margin: 0;
+        }
+        .question-container {
+            margin-top: 20px;
+            border: 2px solid #66f5e4;
+        }
+        .question-counter {
+            margin: 5px;
+            padding: 5px 10px;
+            background-color: red;
+            color: white;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .attempted-questions-block {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .attempted-questions-block p {
+            margin: 0;
+        }
+        .progress-container {
+            margin-top: 20px;
+        }
+        .progress-bar {
+            height: 30px;
+            color: green;
+        }
+    </style>
+</head>
+<body>
+    <div class="container sticky-header">
+        <!-- Sticky Header with timer, total questions, and attempted count -->
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="timer-block">
+                <strong><h2><i class="fa fa-clock" style="color: DodgerBlue;"></i> Duration: {{ test_duration }} minutes</h2></strong>
             </div>
+            <div class="attempted-questions-block">
+                <strong><h2><i class="fa fa-clock" style="color: DodgerBlue;"></i> <span id="timer" aria-live="polite">Time Left: {{ test_duration }}:00</span></h2></strong>
+            </div>
+            <div class="attempted-questions-block">
+                <strong><h2><i class="fa fa-list" style="color: green;"></i> Attempted: <span id="attempted-count">0</span> / {{ questions|length }}</h2></strong>
+            </div>
+        </div>
+        <h2 class="text-center" style="color: blue;">{{ quiz.quiz }}</h2>
+        <div class="progress-container">
+            <div class="progress" style="height: 30px;">
+                <div class="progress-bar" role="progressbar" id="progress-bar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+        </div>
+          <!-- Question Counters -->
+    <div class="d-flex flex-wrap justify-content-center">
+        {% for question in questions %}
+        <span id="question-counter-{{ question.id }}" class="question-counter">
+            {{ forloop.counter }}
+        </span>
         {% endfor %}
     </div>
-</form>
-</div>
+    </div>
 
-<script>
-    // Timer logic for quiz
-    var timeLeft = {{ quiz_duration }} * 60; // Convert quiz duration to seconds
-    var timerElement = document.getElementById('timer');
-    var quizForm = document.getElementById('quizForm');
+    <!-- Question Form -->
+    <form id="TestForm" method="POST" action="{% url 'questions_submit' quiz.id %}">
+        {% csrf_token %}
+        <input type="hidden" name="exam_name" value="{{ quiz.name }}">
+        <div class="question-container">
+            {% for question in questions %}
+            <fieldset id="question-{{ question.id }}">
+                <legend>{{ forloop.counter }}. {{ question.question|safe }}</legend>
+                <div>
+                    <input type="radio" name="question_{{ question.id }}" value="1" id="q{{ question.id }}_1" onclick="updateQuestionStatus({{ question.id }}, 1)">
+                    <label for="q{{ question.id }}_1">{{ question.option_1|safe }}</label>
+                </div>
+                <div>
+                    <input type="radio" name="question_{{ question.id }}" value="2" id="q{{ question.id }}_2" onclick="updateQuestionStatus({{ question.id }}, 2)">
+                    <label for="q{{ question.id }}_2">{{ question.option_2|safe }}</label>
+                </div>
+                <div>
+                    <input type="radio" name="question_{{ question.id }}" value="3" id="q{{ question.id }}_3" onclick="updateQuestionStatus({{ question.id }}, 3)">
+                    <label for="q{{ question.id }}_3">{{ question.option_3|safe }}</label>
+                </div>
+                <div>
+                    <input type="radio" name="question_{{ question.id }}" value="4" id="q{{ question.id }}_4" onclick="updateQuestionStatus({{ question.id }}, 4)">
+                    <label for="q{{ question.id }}_4">{{ question.option_4|safe }}</label>
+                </div>
+              <!-- Mark for Review Button -->
+                <button type="button" class="btn btn-warning btn-sm" id="mark-btn-{{ question.id }}" onclick="markForReview({{ question.id }})">Mark for Review</button>
 
-    var timerInterval = setInterval(function() {
-        var hours = Math.floor(timeLeft / 3600);
-        var minutes = Math.floor((timeLeft % 3600) / 60);
-        var seconds = timeLeft % 60;
-        timerElement.textContent = 'Time Left: ' + (hours > 0 ? hours + ':' : '') + (minutes < 10 ? '0' : '') + minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
+                <!-- Redo Button to Reset Answer -->
+                <button type="button" class="btn btn-primary btn-sm" onclick="redoQuestion({{ question.id }})" style="display:none;">Redo</button>
 
-        timeLeft--;
-        if (timeLeft < 0) {
-            clearInterval(timerInterval);
-            quizForm.submit(); // Auto-submit when time runs out
+                <!-- Hidden status container for each question -->
+                <div id="status-{{ question.id }}" class="question-status" style="display:none;"></div>
+            </fieldset>
+            {% endfor %}
+        </div>
+        <h1></h1>
+        <button type="submit" form="TestForm" class="btn btn-success submit-button">Submit Test</button>
+    </form>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        let attemptedQuestions = 0;
+        const totalQuestions = {{ questions|length }};
+        const attemptedCountElement = document.getElementById('attempted-count');
+
+        // Timer Functionality
+        let timeLeft = {{ test_duration|default:0|safe }} * 60;
+        const timerElement = document.getElementById('timer');
+        setInterval(() => {
+            if (timeLeft > 0) {
+                const minutes = Math.floor(timeLeft / 60);
+                const seconds = timeLeft % 60;
+                timerElement.textContent = `Time Left: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+                timeLeft--;
+            }
+        }, 1000);
+
+        // Update Progress Bar
+        function updateProgressBar() {
+            const progressBar = document.getElementById('progress-bar');
+            const progressPercentage = (attemptedQuestions / totalQuestions) * 100;
+            progressBar.style.backgroundColor = 'green';
+            progressBar.style.width = `${progressPercentage}%`;
         }
-    }, 1000);
-</script>
 
-{% endblock %}
+        // Update Attempted Count
+        function updateAttemptedCount() {
+            attemptedCountElement.textContent = attemptedQuestions;
+        }
+
+        // Update Question Status
+        window.updateQuestionStatus = function (questionId, selectedOption) {
+            const counterElement = document.getElementById(`question-counter-${questionId}`);
+            const redoButton = document.querySelector(`#question-${questionId} button.btn-primary`);
+
+            if (selectedOption) {
+                if (!counterElement.classList.contains('attempted')) {
+                    counterElement.style.backgroundColor = 'green';
+                    counterElement.classList.add('attempted');
+                    attemptedQuestions++;
+                    redoButton.style.display = 'inline-block'; // Enable redo button
+                }
+                updateAttemptedCount();
+                updateProgressBar();
+            }
+        };
+
+        // Mark for Review Functionality
+        window.markForReview = function (questionId) {
+            const counterElement = document.getElementById(`question-counter-${questionId}`);
+            const markButton = document.getElementById(`mark-btn-${questionId}`);
+            const redoButton = document.querySelector(`#question-${questionId} button.btn-primary`);
+
+            if (markButton.textContent === "Mark for Review") {
+                counterElement.style.backgroundColor = 'yellow';
+                markButton.textContent = "Unmark for Review";
+
+            } else {
+                if (counterElement.classList.contains('attempted')) {
+                    counterElement.style.backgroundColor = 'green';
+                } else {
+                    counterElement.style.backgroundColor = 'red';
+                    redoButton.style.display = 'none'; // Hide redo button if unmarked and not attempted
+                }
+                markButton.textContent = "Mark for Review";
+            }
+        };
+
+        // Redo Functionality
+        window.redoQuestion = function (questionId) {
+            const counterElement = document.getElementById(`question-counter-${questionId}`);
+            const statusContainer = document.getElementById(`status-${questionId}`);
+            const questionInputs = document.querySelectorAll(`[name="question_${questionId}"]`);
+            const redoButton = document.querySelector(`#question-${questionId} button.btn-primary`);
+
+            // Reset the question inputs and counter
+            questionInputs.forEach(input => (input.checked = false));
+            counterElement.style.backgroundColor = 'red';
+            counterElement.classList.remove('attempted');
+            redoButton.style.display = 'none'; // Hide redo button
+            attemptedQuestions = Math.max(0, attemptedQuestions - 1);
+            updateAttemptedCount();
+            updateProgressBar();
+        };
+    });
+    </script>
+</body>
+</html>
+{% endblock content %}

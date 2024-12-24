@@ -14,6 +14,7 @@ from datetime import timedelta
 from pathlib import Path
 import os
 from datetime import datetime, timedelta
+
 from .config import Config, SUPERUSER
 from logging.handlers import TimedRotatingFileHandler
 
@@ -210,7 +211,7 @@ LOGGING = {
         'file': {
             'level': 'DEBUG',
             'class': 'logging.handlers.TimedRotatingFileHandler',
-            'filename': os.path.join(log_dir, 'debug1.log'),
+            'filename': os.path.join(log_dir, 'debug.log'),
             'when': 'midnight',  # Rotate at midnight each day
             'interval': 1,
             'backupCount': 10,  # Keep up to 5 backup log files

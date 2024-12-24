@@ -31,11 +31,11 @@
 
                     <!-- quiz Name Dropdown (select) -->
                     <div class="form-group">
-                        <label for="quizname">Select Quiz Name:</label>
-                        <select id="quizname" name="quizname" class="form-control" required>
-                            <option value="{{ question.quizname.id }}">{{ question.quizname }}</option>
-                            {% for quizname in quiznames %}
-                                <option value="{{ quizname.id }}">{{ quizname.quizname }}</option>
+                        <label for="quiz">Select Quiz:</label>
+                        <select id="quiz" name="quiz" class="form-control" required>
+                            <option value="{{ question.quiz.id }}">{{ question.quiz }}</option>
+                            {% for quiz in quizs %}
+                                <option value="{{ quiz.id }}">{{ quiz.quiz }}</option>
                             {% endfor %}
                         </select>
                     </div>

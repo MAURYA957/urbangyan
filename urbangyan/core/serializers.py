@@ -1,6 +1,6 @@
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from .models import Blog, Course, Topic, Quiz, Questions, User, UserSession, QuizName, Unit, Subject, \
-    Offer, MockTestSubjectConfig, MockTest
+from .models import Blog, Course, Topic, Quiz, Questions, User, UserSession, Unit, Subject, \
+    Offer, MockTestSubjectConfig, MockTest, SavedJob, ExperienceLevel, Order, Cart
 from rest_framework import serializers
 from django.contrib.auth.hashers import make_password
 
@@ -140,3 +140,79 @@ class MockTestSerializer(serializers.ModelSerializer):
 
         mock_test.populate_questions()  # Populate questions after config creation
         return mock_test
+
+
+from rest_framework import serializers
+from .models import Advertisement, Job, JobType, JobCategory, JobStage
+
+class AdvertisementSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Advertisement
+        fields = '__all__'
+
+class JobTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = JobType
+        fields = '__all__'
+
+class JobCategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = JobCategory
+        fields = '__all__'
+
+class JobStageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = JobStage
+        fields = '__all__'
+
+class JobSerializer(serializers.ModelSerializer):
+    job_type = JobTypeSerializer()
+    job_category = JobCategorySerializer()
+    stage = JobStageSerializer()
+
+    class Meta:
+        model = Job
+        fields = '__all__'
+
+
+class SavedJobSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SavedJob
+        fields = '__all__'
+        read_only_fields = ('created_at',)
+
+class ExperienceLevelSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ExperienceLevel
+        fields = ['id', 'level', 'created_at', 'updated_at']
+
+
+class CartSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source='product.name', read_only=True)
+    product_price = serializers.DecimalField(source='product.price', read_only=True, max_digits=10, decimal_places=2)
+
+    class Meta:
+        model = Cart
+        fields = ['id', 'user', 'product_type', 'product_id', 'quantity', 'total_price', 'product_name',
+                  'product_price']
+
+    def create(self, validated_data):
+        # Ensure that the Cart is created with the product and quantity
+        return Cart.objects.create(**validated_data)
+
+
+class OrderSerializer(serializers.ModelSerializer):
+    user = serializers.StringRelatedField()
+    created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S")
+    updated_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S")
+    valid_until = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", required=False)
+
+    class Meta:
+        model = Order
+        fields = ['id', 'user', 'total_amount', 'created_at', 'updated_at', 'valid_until']
+
+    def create(self, validated_data):
+        # Automatically set the valid_until date to 1 year after creation
+        order = Order(**validated_data)
+        order.save()
+        return order
