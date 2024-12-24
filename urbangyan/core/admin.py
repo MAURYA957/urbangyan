@@ -1,6 +1,6 @@
 from django.contrib import admin
-from .models import User, Blog, Comment, Offer, Subject, Course, Unit, Topic, Quiz, QuizName, Questions, QuizResult, \
-    UserSession, MockTestSubjectConfig, MockTest, UserResponse
+from .models import User, Blog, Comment, Offer, Subject, Course, Unit, Topic, Quiz, Questions, QuizResult, \
+    UserSession, MockTestSubjectConfig, MockTest, UserResponse, ExperienceLevel, Cart, Order
 
 
 # Customizing the User admin
@@ -25,6 +25,7 @@ class BlogAdmin(admin.ModelAdmin):
         logger = logging.getLogger(__name__)
         logger.debug(f"Deleting Blog: {obj} with related comments")
         super().delete_model(request, obj)
+
 
 admin.site.register(Blog, BlogAdmin)
 
@@ -99,19 +100,9 @@ class QuizAdmin(admin.ModelAdmin):
 admin.site.register(Quiz, QuizAdmin)
 
 
-# Registering QuizName model
-class QuizNameAdmin(admin.ModelAdmin):
-    list_display = ('quiz', 'quizname', 'duration', 'created_at')
-    search_fields = ('quizname',)
-    ordering = ('-created_at',)
-
-
-admin.site.register(QuizName, QuizNameAdmin)
-
-
 # Registering Questions model
 class QuestionsAdmin(admin.ModelAdmin):
-    list_display = ('quizname', 'question', 'created_at')
+    list_display = ('Subject', 'question', 'created_at')
     search_fields = ('question',)
     ordering = ('-created_at',)
 
@@ -155,8 +146,9 @@ from .models import Badge
 
 class BadgeAdmin(admin.ModelAdmin):
     list_display = (
-    'id', 'user', 'badge_type', 'score', 'attempted_question', 'total_question', 'Incorrect_question', 'Unattampted_question',
-    'exam_name', 'date_awarded')  # Fields to be displayed in the admin list view
+        'id', 'user', 'badge_type', 'score', 'attempted_question', 'total_question', 'Incorrect_question',
+        'Unattampted_question',
+        'exam_name', 'date_awarded')  # Fields to be displayed in the admin list view
     list_filter = ('badge_type', 'date_awarded', 'exam_name')  # Filters to help narrow down the data in the admin view
     search_fields = ('user__username', 'badge_type', 'exam_name')  # Fields that can be searched
     readonly_fields = ('submission_id', 'created_at', 'updated_at')  # Fields that should be read-only
@@ -240,3 +232,54 @@ class UserResponseAdmin(admin.ModelAdmin):
 
 # Register the admin
 admin.site.register(UserResponse, UserResponseAdmin)
+
+
+from django.contrib import admin
+from .models import Advertisement, Job, JobType, JobCategory, JobStage
+
+@admin.register(Advertisement)
+class AdvertisementAdmin(admin.ModelAdmin):
+    list_display = ('title', 'media_type', 'is_active', 'expiry_date', 'created_at')
+    list_filter = ('media_type', 'is_active')
+    search_fields = ('title',)
+
+@admin.register(JobType)
+class JobTypeAdmin(admin.ModelAdmin):
+    list_display = ('name',)
+    search_fields = ('name',)
+
+@admin.register(JobCategory)
+class JobCategoryAdmin(admin.ModelAdmin):
+    list_display = ('name',)
+    search_fields = ('name',)
+
+@admin.register(JobStage)
+class JobStageAdmin(admin.ModelAdmin):
+    list_display = ('name',)
+    search_fields = ('name',)
+
+@admin.register(Job)
+class JobAdmin(admin.ModelAdmin):
+    list_display = ('exam_name', 'post_name', 'job_type', 'job_category', 'stage', 'created_at')
+    list_filter = ('job_type', 'job_category', 'stage')
+    search_fields = ('exam_name', 'post_name', 'recruiter')
+
+@admin.register(ExperienceLevel)
+class ExperienceLevelAdmin(admin.ModelAdmin):
+    list_display = ('id', 'level', 'created_at', 'updated_at')
+    search_fields = ('level',)
+    ordering = ('-created_at',)
+
+
+class CartAdmin(admin.ModelAdmin):
+    list_display = ('user', 'product', 'quantity', 'total_price')
+    search_fields = ('user__username', 'product__name')
+    list_filter = ('user',)
+
+class OrderAdmin(admin.ModelAdmin):
+    list_display = ('user', 'total_amount', 'created_at', 'updated_at', 'valid_until')
+    search_fields = ('user__username',)
+    list_filter = ('user', 'created_at')
+
+admin.site.register(Cart, CartAdmin)
+admin.site.register(Order, OrderAdmin)

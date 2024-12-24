@@ -4,14 +4,12 @@ from random import random
 
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser, Group, Permission
+from django.contrib.contenttypes.fields import GenericForeignKey
 from django.db import models
 from django.db.models import Sum
 from django.middleware.csrf import logger
 from django.urls import reverse
-from django.utils import timezone
 from ckeditor_uploader.fields import RichTextUploadingField
-from rest_framework.generics import get_object_or_404
-
 
 
 class User(AbstractUser):
@@ -87,7 +85,6 @@ class Comment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
-
     def __str__(self):
         return self.content
 
@@ -111,6 +108,11 @@ class Subject(models.Model):
     image = models.ImageField(upload_to='subjects/', blank=True, null=True)  # Optional image for Subject
     authors = models.TextField(blank=True, null=True,
                                help_text="Enter author names separated by commas")  # Store multiple author names
+    is_active = models.BooleanField(default=True)
+
+    def delete(self, *args, **kwargs):
+        self.is_active = False
+        self.save()
 
     def __str__(self):
         return self.name
@@ -129,7 +131,7 @@ class Course(models.Model):
     image = models.ImageField(upload_to='courses/', blank=True, null=True)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     subjects = models.ManyToManyField('Subject', related_name='courses')  # Many-to-many relationship with Subject
-    Staff = models.CharField(blank=True, null=True)
+    Staff = models.CharField(max_length=255, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -174,32 +176,26 @@ class Topic(models.Model):
 class Quiz(models.Model):
     quiz = models.CharField(max_length=500)
     description = RichTextUploadingField()
-    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='quiz', blank=True, null=True)
+    subject = models.ForeignKey(
+        Subject,
+        on_delete=models.SET_NULL,  # Set subject to NULL if it's deleted
+        related_name='quizzes',  # Adjusted for a plural-related name
+        blank=True,
+        null=True
+    )
+    No_of_Questions = models.IntegerField(default=10)
+    duration = models.DurationField(default=timedelta(minutes=30))  # Duration in minutes
+    created_at = models.DateTimeField(auto_now_add=True, blank=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True, blank=True, null=True)
+
+    def __str__(self):
+        return self.quiz
 
     def __str__(self):
         return self.quiz
 
 
-class QuizName(models.Model):
-    quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name='quizname', default='None')
-    quizname = RichTextUploadingField(max_length=100, default='None')
-    No_of_Questions = models.IntegerField(default=10)
-    duration = models.IntegerField(default=60)  # Duration in minutes
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return self.quizname
-
-    def is_active(self):
-        """Check if the quiz is active based on the start time and duration."""
-        now = timezone.now()
-        end_time = self.start_time + timedelta(minutes=self.duration)
-        return self.start_time <= now <= end_time
-
-
 class Questions(models.Model):
-    quizname = models.ForeignKey(QuizName, on_delete=models.CASCADE, related_name='questions')
     quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name='questions')
     Subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='questions')
     question_level = models.CharField(max_length=50, default='Beginner')  # Example default level
@@ -262,7 +258,6 @@ class MockTestSubjectConfig(models.Model):
         return f"{self.num_questions} questions from {self.subject.name} with max score {self.max_score}"
 
 
-
 class MockTest(models.Model):
     Exam_Name = models.CharField(max_length=100, default='test')
     Instructions = RichTextUploadingField(max_length=1000, default='test')
@@ -313,7 +308,8 @@ class UserResponse(models.Model):
     correct_answer = models.IntegerField(null=True, blank=True)  # Option number (1-4)
     explanation = RichTextUploadingField(max_length=1000, null=True, blank=True)
     selected_option = models.IntegerField()  # User's selected option (1-4)
-    answer_description = RichTextUploadingField(max_length=1000, null=True, blank=True)  # Explanation based on user input
+    answer_description = RichTextUploadingField(max_length=1000, null=True,
+                                                blank=True)  # Explanation based on user input
     is_correct = models.BooleanField(default=False)
     exam_name = models.CharField(max_length=255, null=True, blank=True)  # Changed from RichText to CharField
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
@@ -321,7 +317,6 @@ class UserResponse(models.Model):
 
     def __str__(self):
         return f"Response by {self.user} for Question ID {self.question.id if self.question else 'N/A'}"
-
 
     def __str__(self):
         return f"Response by {self.user} for Question ID {self.question.id if self.question else 'N/A'}"
@@ -382,20 +377,156 @@ class UserResponse(models.Model):
         self.answer_description = options_map.get(self.selected_option, "Invalid selection.")
         logger.debug(f"Set answer_description: {self.answer_description}")
 
-class Badge(models.Model):
-        user = models.ForeignKey(User, on_delete=models.CASCADE)
-        submission_id = models.UUIDField(default=uuid.uuid4, editable=False)  # Unique submission ID
-        score = models.IntegerField(default=0)  # Changed to IntegerField
-        attempted_question = models.IntegerField(default=0)  # Changed to IntegerField
-        total_question = models.IntegerField(default=0)  # Changed to IntegerField
-        Incorrect_question = models.IntegerField(default=0)  # Changed to IntegerField
-        Unattampted_question = models.IntegerField(default=0)  # Changed to IntegerField
-        mock_test = models.ForeignKey(MockTest, on_delete=models.CASCADE)
-        badge_type = models.CharField(max_length=100)
-        date_awarded = models.DateTimeField(auto_now_add=True)
-        exam_name = models.CharField(max_length=255, null=True, blank=True)  # Changed from RichText to CharField
-        created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
-        updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
 
-        def __str__(self):
-            return f"{self.user} earned {self.badge_type} badge"
+class Badge(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    submission_id = models.UUIDField(default=uuid.uuid4, editable=False)  # Unique submission ID
+    score = models.IntegerField(default=0)  # Changed to IntegerField
+    attempted_question = models.IntegerField(default=0)  # Changed to IntegerField
+    total_question = models.IntegerField(default=0)  # Changed to IntegerField
+    Incorrect_question = models.IntegerField(default=0)  # Changed to IntegerField
+    Unattampted_question = models.IntegerField(default=0)  # Changed to IntegerField
+    mock_test = models.ForeignKey(MockTest, on_delete=models.CASCADE)
+    badge_type = models.CharField(max_length=100)
+    date_awarded = models.DateTimeField(auto_now_add=True)
+    exam_name = models.CharField(max_length=255, null=True, blank=True)  # Changed from RichText to CharField
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.user} earned {self.badge_type} badge"
+
+
+class Advertisement(models.Model):
+    MEDIA_CHOICES = [
+        ('image', 'Image'),
+        ('audio', 'Audio'),
+        ('video', 'Video'),
+        ('google', 'Google Ad'),
+    ]
+
+    title = models.CharField(max_length=200, help_text="Title of the advertisement.")
+    media_type = models.CharField(max_length=10, choices=MEDIA_CHOICES, default='image',
+                                  help_text="Type of media for the advertisement.")
+    media_file = models.FileField(upload_to='advertisements/', blank=True, null=True,
+                                  help_text="Media file for the advertisement (image, audio, or video).")
+    google_ad_code = models.TextField(blank=True, null=True, help_text="Google Ad code (if applicable).")
+    url = models.URLField(blank=True, null=True, help_text="URL the advertisement links to.")
+    is_active = models.BooleanField(default=True,
+                                    help_text="Automatically deactivates if the current date exceeds the expiry date.")
+    expiry_date = models.DateTimeField(blank=True, null=True,
+                                       help_text="Expiry date for the advertisement. Leave blank for no expiry.")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.title
+
+    def is_expired(self):
+        """Check if the advertisement is expired."""
+        from django.utils.timezone import now
+        return self.expiry_date and self.expiry_date < now()
+
+    def save(self, *args, **kwargs):
+        """Override save method to update is_active based on expiry date."""
+        from django.utils.timezone import now
+        if self.expiry_date and self.expiry_date <= now():
+            self.is_active = False
+        super().save(*args, **kwargs)
+
+
+# Example usage in views
+# Fetch active and non-expired advertisements for a specific page
+# from django.utils.timezone import now
+# ads = Advertisement.objects.filter(pages__slug='home', is_active=True).exclude(expiry_date__lt=now())
+
+
+class JobType(models.Model):
+    name = models.CharField(max_length=50, unique=True, help_text="Type of job (e.g., Sarkari, Private).")
+
+    def __str__(self):
+        return self.name
+
+class JobCategory(models.Model):
+    name = models.CharField(max_length=100, unique=True, help_text="Category of the job (e.g., Engineering, Medical).")
+
+    def __str__(self):
+        return self.name
+
+class JobStage(models.Model):
+    name = models.CharField(max_length=50, unique=True, help_text="Stage of the job process (e.g., Advertised, Result Declared).")
+
+    def __str__(self):
+        return self.name
+
+class ExperienceLevel(models.Model):
+    level = models.CharField(max_length=50, unique=True, help_text="Name of the experience level (e.g., Entry-level, Mid-level).")
+    created_at = models.DateTimeField(auto_now_add=True, help_text="The date and time when the experience level was created.")
+    updated_at = models.DateTimeField(auto_now=True, help_text="The date and time when the experience level was last updated.")
+
+
+
+class Job(models.Model):
+    job_type = models.ForeignKey(JobType, on_delete=models.PROTECT, help_text="Type of job (Sarkari or Private).")
+    job_category = models.ForeignKey(JobCategory, on_delete=models.PROTECT, help_text="Category of the job.")
+    ExperienceLevel = models.ForeignKey(ExperienceLevel, on_delete=models.PROTECT, blank=True, null=True, help_text="ExperienceLevel required for the job.")
+    recruiter = models.CharField(max_length=100, help_text="Recruiter for the job.")
+    advertised_no = models.CharField(max_length=100, help_text="Advertisement number.")
+    exam_name = models.CharField(max_length=200, help_text="Name of the exam.")
+    post_name = RichTextUploadingField(max_length=200, help_text="Name of the post.")
+    total_post = models.PositiveIntegerField(help_text="Total number of posts available.")
+    eligibility = RichTextUploadingField(help_text="Eligibility criteria for the job.")
+    important_date = RichTextUploadingField(help_text="Important dates related to the job.")
+    stage = models.ForeignKey(JobStage, on_delete=models.PROTECT, help_text="Current stage of the job.")
+    notification = models.FileField(upload_to='notification/', blank=True, null=True, help_text="Notification details.")
+    details = RichTextUploadingField(help_text="Detailed description of the job.")
+    apply_link = models.URLField(blank=True, null=True, help_text="Link to apply for the job.")
+    admit_card_link = models.URLField(blank=True, null=True, help_text="Link to download the admit card.")
+    result_link = models.URLField(blank=True, null=True, help_text="Link to check the result.")
+    official_website = models.URLField(help_text="Official website for the job.")
+
+    created_at = models.DateTimeField(auto_now_add=True, help_text="The date and time when the job was created.")
+    updated_at = models.DateTimeField(auto_now=True, help_text="The date and time when the job was last updated.")
+
+    def __str__(self):
+        return f"{self.exam_name} - {self.post_name}"
+
+
+class SavedJob(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, help_text="The user who saved the job.")
+    job_link = models.URLField(help_text="Link to the saved job.")
+    created_at = models.DateTimeField(auto_now_add=True, help_text="The date and time when the job was saved.")
+
+    def __str__(self):
+        return f"SavedJob by {self.user.username} - {self.job_link}"
+
+from django.contrib.contenttypes.models import ContentType
+
+class Cart(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    product_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    product_id = models.PositiveIntegerField()
+    product = GenericForeignKey('product_type', 'product_id')
+    quantity = models.PositiveIntegerField(default=1)
+
+    def total_price(self):
+        return self.product.price * self.quantity
+
+    def __str__(self):
+        return f"{self.product} ({self.quantity})"
+
+class Order(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    valid_until = models.DateTimeField(blank=True, null=True)
+
+    def save(self, *args, **kwargs):
+        # Set the validity period to 1 year after the order is created
+        if not self.valid_until:
+            self.valid_until = self.created_at + timedelta(days=365)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Order {self.id} - {self.user.username}"

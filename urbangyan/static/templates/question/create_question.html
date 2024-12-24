@@ -47,13 +47,6 @@
                         </select>
                     </div>
 
-                    <!-- quiz Name Dropdown -->
-                    <div class="form-group">
-                        <label for="quizname">Select Quiz Name:</label>
-                        <select id="quizname" name="quizname" class="form-control" required>
-                            <option value="">Select Quiz Name</option>
-                        </select>
-                    </div>
 
                     <!-- Subject Dropdown -->
                     <div class="form-group">
@@ -129,31 +122,6 @@
 <!-- Scripts -->
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 <script>
-    $(document).ready(function () {
-        $('#quiz').change(function () {
-            var quizId = $(this).val();
-            if (quizId) {
-                $.ajax({
-                    url: '{% url "get-quiznames" %}',  // Replace with the correct view URL
-                    data: { 'quiz_id': quizId },
-                    dataType: 'json',
-                    success: function (data) {
-                        $('#quizname').empty();
-                        $('#quizname').append('<option value="">Select Quiz Name</option>');
-                        $.each(data, function (index, quizname) {
-                            $('#quizname').append('<option value="' + quizname.id + '">' + quizname.quizname + '</option>');
-                        });
-                    },
-                    error: function () {
-                        alert('Error fetching quiz names. Please try again.');
-                    }
-                });
-            } else {
-                $('#quizname').empty();
-                $('#quizname').append('<option value="">Select Quiz Name</option>');
-            }
-        });
-
         // Initialize CKEditor
         CKEDITOR.replace('question');
         CKEDITOR.replace('option_1');

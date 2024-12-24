@@ -12,8 +12,8 @@
     <table class="table table-bordered" style="background-color: #f0f8ff;"> <!-- Light blue background for the table -->
         <thead style="background-color: #f8d8c0;"> <!-- Light orange header -->
             <tr>
+                <th>Subject</th>
                 <th>Quiz</th>
-                <th>Quiz Name</th>
                 <th>Question</th>
                 <th>Actions</th>
             </tr>
@@ -21,8 +21,8 @@
         <tbody id="questionTableBody">
             {% for question in questions %}
                 <tr>
+                    <td>{{ question.subject.subject }}</td>
                     <td>{{ question.quiz.quiz }}</td>
-                    <td>{{ question.quizname.quizname }}</td>
                     <td>{{ question.question }}</td>
                     <td>
                         {% if user.is_authenticated %}

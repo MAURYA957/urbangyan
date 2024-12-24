@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block content %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Current Affairs</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            color: #333;
+        }
+        .news-item {
+            background-color: white;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .news-item a {
+            text-decoration: none;
+            color: #2d87f0;
+            font-weight: bold;
+        }
+        .news-item a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <h1>Today's Current Affairs</h1>
+
+    {% if current_affairs %}
+        <div>
+            {% for article in current_affairs %}
+                <div class="news-item">
+                    <a href="{{ article.url }}" target="_blank">{{ article.title }}</a>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>No news available at the moment.</p>
+    {% endif %}
+</body>
+</html>
+{% endblock content %}

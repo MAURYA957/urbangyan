@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% load custom_filters %}
+{% block content %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment</title>
+
+    <!-- External CSS for styling -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f7f7f7;
+            color: #333;
+        }
+
+        .container {
+            margin-top: 50px;
+            max-width: 600px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #4CAF50;
+            font-size: 36px;
+            margin-bottom: 20px;
+        }
+
+        .order-summary {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .order-summary p {
+            font-size: 18px;
+            color: #333;
+            margin: 10px 0;
+        }
+
+        .total-amount {
+            font-size: 24px;
+            font-weight: bold;
+            color: #28a745;
+            margin-top: 20px;
+        }
+
+        .payment-btn {
+            display: block;
+            width: 100%;
+            background-color: #28a745;
+            color: white;
+            padding: 15px;
+            font-size: 18px;
+            text-align: center;
+            border-radius: 5px;
+            text-decoration: none;
+            margin-top: 30px;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        .payment-btn:hover {
+            background-color: #218838;
+            transform: scale(1.05);
+        }
+
+        .payment-btn:active {
+            background-color: #1e7e34;
+        }
+
+        .payment-icon {
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Payment</h1>
+
+        <div class="order-summary">
+            <p><strong>Order Total:</strong> ${{ order.total_amount }}</p>
+            <p>Your order is ready for payment. Please click the button below to complete the payment.</p>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="payment-btn">
+                <i class="fas fa-credit-card payment-icon"></i> Complete Payment
+            </button>
+        </form>
+    </div>
+
+    <!-- External JS for Bootstrap and interactive features -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
+{% endblock content %}

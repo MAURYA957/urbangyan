@@ -1,5 +1,5 @@
 {% extends "base.html" %}
- load custom_filters %}
+{% load custom_filters %}
 
 {% block content %}
 <html lang="en">
@@ -87,7 +87,7 @@
         <div class="question-container">
             {% for question in questions %}
             <fieldset id="question-{{ question.id }}">
-                <legend>{{ forloop.counter }}. {{ question.question|safe }}</legend>
+                <strong><legend>{{ forloop.counter }}.{{ question.question|safe|striptags }}</legend></strong>
                 <div>
                     <input type="radio" name="question_{{ question.id }}" value="1" id="q{{ question.id }}_1" onclick="updateQuestionStatus({{ question.id }}, 1)">
                     <label for="q{{ question.id }}_1">{{ question.option_1|safe }}</label>
