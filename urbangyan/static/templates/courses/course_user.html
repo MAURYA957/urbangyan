@@ -30,12 +30,38 @@
                         </div>
 
                         <!-- Course Price and Button -->
+                        <!-- Modal for unauthenticated users -->
+                        <div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="loginModalLabel" style="color: #2c3e50;">Please Log In</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p style="color: #2c3e50;">You need to log in before adding course into cart.</p>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <a href="{% url 'login' %}" class="btn btn-primary" style="background-color: #3498db; border: none;">Log In</a>
+                                        <a href="{% url 'create_user' %}" class="btn btn-secondary" style="background-color: #95a5a6; border: none;">Register</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         <div class="mt-3">
                             <span class="d-block text-success fw-bold">Price: ₹{{ course.price }}</span>
-                            <a href="{% url 'add_to_cart' item_type='course' item_id=course.id %}" class="btn btn-sm btn-success w-100 mt-2">
-                                <i class="fas fa-shopping-cart"></i> Add to Cart
-                            </a>
                         </div>
+                        {% if user.is_authenticated %}
+                            <a href="{% url 'add_to_cart' item_type='course' item_id=course.id %}"
+                               class="btn btn-primary mt-2"
+                               style="background-color: #3498db; border: none; font-weight: bold;">
+                                Add to Cart
+                            </a>
+                        {% else %}
+                            <button class="btn btn-primary mt-2" style="background-color: #3498db; border: none; font-weight: bold;" data-bs-toggle="modal" data-bs-target="#loginModal">
+                                Add to Cart
+                            </button>
+                        {% endif %}
                     </div>
                 </div>
             </div>

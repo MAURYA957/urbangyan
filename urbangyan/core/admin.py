@@ -283,3 +283,18 @@ class OrderAdmin(admin.ModelAdmin):
 
 admin.site.register(Cart, CartAdmin)
 admin.site.register(Order, OrderAdmin)
+
+
+from .models import CurrentAffair, AffairsCategory
+
+
+@admin.register(CurrentAffair)
+class CurrentAffairAdmin(admin.ModelAdmin):
+    list_display = ('title', 'date', 'category', 'country', 'created_at')
+    list_filter = ('category', 'country', 'date')
+    search_fields = ('title', 'description', 'country')
+
+@admin.register(AffairsCategory)
+class AffairsCategoryAdmin(admin.ModelAdmin):
+    list_display = ('name', 'description', 'created_at')
+    search_fields = ('name',)

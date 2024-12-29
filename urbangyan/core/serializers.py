@@ -1,6 +1,6 @@
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import Blog, Course, Topic, Quiz, Questions, User, UserSession, Unit, Subject, \
-    Offer, MockTestSubjectConfig, MockTest, SavedJob, ExperienceLevel, Order, Cart
+    Offer, MockTestSubjectConfig, MockTest, SavedJob, ExperienceLevel, Order, Cart, AffairsCategory, CurrentAffair
 from rest_framework import serializers
 from django.contrib.auth.hashers import make_password
 
@@ -216,3 +216,24 @@ class OrderSerializer(serializers.ModelSerializer):
         order = Order(**validated_data)
         order.save()
         return order
+
+
+class AffairsCategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AffairsCategory
+        fields = ['id', 'name', 'description']
+
+class CurrentAffairSerializer(serializers.ModelSerializer):
+    category = AffairsCategorySerializer(read_only=True)
+    category_id = serializers.PrimaryKeyRelatedField(
+        queryset=AffairsCategory.objects.all(),
+        source='category',
+        write_only=True
+    )
+
+    class Meta:
+        model = CurrentAffair
+        fields = [
+            'id', 'title', 'description', 'date', 'category', 'category_id',
+            'country', 'source', 'created_at', 'updated_at'
+        ]

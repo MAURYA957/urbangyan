@@ -6,8 +6,9 @@ from django.conf import settings
 from django.contrib.auth.models import AbstractUser, Group, Permission
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.db import models
-from django.db.models import Sum
+from django.db.models import Sum, Max
 from django.middleware.csrf import logger
+from django.template.defaulttags import now
 from django.urls import reverse
 from ckeditor_uploader.fields import RichTextUploadingField
 
@@ -515,18 +516,84 @@ class Cart(models.Model):
     def __str__(self):
         return f"{self.product} ({self.quantity})"
 
+from django.utils.timezone import now  # Correct import
+
 class Order(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    order_id = models.CharField(max_length=100, default='order_id')
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    order_status = models.CharField(max_length=20, default="Order Initiated")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     valid_until = models.DateTimeField(blank=True, null=True)
 
     def save(self, *args, **kwargs):
-        # Set the validity period to 1 year after the order is created
+        # Generate the order ID if not already set
+        if not self.order_id:
+            today = now().date()
+            # Get the highest order number for the current day
+            max_order_number = Order.objects.filter(
+                created_at__date=today
+            ).aggregate(Max('id'))['id__max'] or 0
+            order_number = max_order_number + 1
+
+            # Format the order ID
+            timestamp = now().strftime('%Y%m%d%H%M%S')
+            self.order_id = f"order_id_{self.user.username}_{timestamp}_{order_number}"
+
+        # Set the validity period to 1 year if not already set
         if not self.valid_until:
-            self.valid_until = self.created_at + timedelta(days=365)
+            self.valid_until = (self.created_at or now()) + timedelta(days=365)
+
+        super().save(*args, **kwargs)
+
+    def save(self, *args, **kwargs):
+        # Use created_at if available, otherwise fallback to the current time
+        if not self.valid_until:
+            self.valid_until = (self.created_at or now()) + timedelta(days=365)
         super().save(*args, **kwargs)
 
     def __str__(self):
         return f"Order {self.id} - {self.user.username}"
+
+
+
+
+class AffairsCategory(models.Model):
+    name = models.CharField(max_length=100, unique=True, help_text="Name of the category (e.g., Politics, Sports, Important Dates)")
+    description = models.TextField(blank=True, null=True, help_text="Optional description for the category")
+    created_at = models.DateTimeField(auto_now_add=True, help_text="Timestamp when the category was created")
+    updated_at = models.DateTimeField(auto_now=True, help_text="Timestamp when the category was last updated")
+
+    class Meta:
+        verbose_name = "AffairsCategory"
+        verbose_name_plural = "AffairsCategorys"
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
+class CurrentAffair(models.Model):
+    title = models.CharField(max_length=255, help_text="Title of the current affair")
+    description = models.TextField(help_text="Detailed description of the current affair")
+    date = models.DateField(help_text="Date of the event or news")
+    category = models.ForeignKey(
+        AffairsCategory,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="Category of the current affair"
+    )
+    country = models.CharField(max_length=100, help_text="Country related to the current affair")
+    source = models.URLField(blank=True, null=True, help_text="Source URL for the current affair")
+    created_at = models.DateTimeField(auto_now_add=True, help_text="Timestamp when the record was created")
+    updated_at = models.DateTimeField(auto_now=True, help_text="Timestamp when the record was last updated")
+
+    class Meta:
+        verbose_name = "Current Affair"
+        verbose_name_plural = "Current Affairs"
+        ordering = ['-date']
+
+    def __str__(self):
+        return f"{self.title} ({self.country})"

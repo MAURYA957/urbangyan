@@ -19,7 +19,7 @@ from .views import (
     MockTestCreateView, MockTestUpdateView, MockTestDeleteView, MockTest_user, test_submit,
     mocktest_detailview, test_result, register_user, user_quizzes_view, quizzes_by_subject, AdvertisementViewSet,
     JobTypeViewSet, JobCategoryViewSet, JobStageViewSet, JobViewSet, SavedJobViewSet, ExperienceLevelViewSet,
-    CartViewSet, OrderViewSet
+    CartViewSet, OrderViewSet, CurrentAffairAPIView, current_affairs_list, AffairsCategoryViewSet
 )
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
@@ -63,6 +63,7 @@ router.register(r'saved-jobs', SavedJobViewSet)
 router.register(r'experience-level', ExperienceLevelViewSet)
 router.register(r'cart', CartViewSet)
 router.register(r'order', OrderViewSet)
+router.register(r'affairs-categories', AffairsCategoryViewSet)
 
 # Defining the URL patterns
 urlpatterns = [
@@ -206,6 +207,11 @@ urlpatterns = [
     path('checkout/', views.checkout, name='checkout'),
     path('payment/<int:order_id>/', views.payment, name='payment'),
     path('payment-success/<int:order_id>/', views.payment_success, name='payment_success'),
+
+    # Combined endpoint for all actions
+    path('current-affairs/', CurrentAffairAPIView.as_view(), name='current_affairs_list_create'),
+    path('current-affairs/<int:pk>/', CurrentAffairAPIView.as_view(), name='current_affairs_detail'),
+    path('current-affairs-list/', current_affairs_list, name='current_affairs_list'),
 
 ]
 

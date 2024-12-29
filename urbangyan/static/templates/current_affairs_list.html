@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block content %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Current Affairs</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css">
+    <style>
+        .description-container {
+            max-height: 100px;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+
+        .description-container.expanded {
+            max-height: 1000px;
+        }
+
+        .toggle-link {
+            color: #007bff;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        .toggle-link:hover {
+            color: #0056b3;
+        }
+    </style>
+    <script>
+        function toggleDescription(id) {
+            var fullDescription = document.getElementById("description-" + id);
+            var toggleLink = document.getElementById("toggle-link-" + id);
+
+            fullDescription.classList.toggle("expanded");
+
+            if (fullDescription.classList.contains("expanded")) {
+                toggleLink.innerText = "View Less";
+            } else {
+                toggleLink.innerText = "View Details";
+            }
+        }
+    </script>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center">Current Affairs</h1>
+
+        <!-- Filter Form -->
+        <form method="get" class="row mb-3">
+            <div class="col-md-3">
+                <input type="text" name="search" class="form-control" placeholder="Search by title or country" value="{{ search_query }}">
+            </div>
+            <div class="col-md-2">
+                <select name="category" class="form-select">
+                    <option value="">All Categories</option>
+                    {% for cat in categories %}
+                        <option value="{{ cat.id }}" {% if category == cat.id|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="country" class="form-select">
+                    <option value="">All Countries</option>
+                    {% for c in countries %}
+                        <option value="{{ c }}" {% if country == c %}selected{% endif %}>{{ c }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="date_filter" class="form-select">
+                    <option value="all" {% if date_filter == "all" %}selected{% endif %}>All Dates</option>
+                    <option value="current_week" {% if date_filter == "current_week" %}selected{% endif %}>Current Week</option>
+                    <option value="current_month" {% if date_filter == "current_month" %}selected{% endif %}>Current Month</option>
+                    <option value="current_year" {% if date_filter == "current_year" %}selected{% endif %}>Current Year</option>
+                    <option value="previous_years" {% if date_filter == "previous_years" %}selected{% endif %}>Previous Years</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">Filter</button>
+            </div>
+        </form>
+
+        <!-- Current Affairs Table -->
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Description</th>
+                    <th>Date</th>
+                    <th>Category</th>
+                    <th>Country</th>
+                    <th>Source</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for affair in current_affairs %}
+                    <tr>
+                        <td>{{ affair.title }}</td>
+                        <td>
+                            <div id="description-{{ affair.id }}" class="description-container">
+                                {{ affair.description }}
+                            </div>
+                            <span>{{ affair.description|truncatechars:100 }}</span>
+                            <a href="javascript:void(0);" id="toggle-link-{{ affair.id }}" class="toggle-link" onclick="toggleDescription({{ affair.id }})">View Details</a>
+                        </td>
+                        <td>{{ affair.date }}</td>
+                        <td>{{ affair.category.name }}</td>
+                        <td>{{ affair.country }}</td>
+                        <td>
+                            {% if affair.source %}
+                                <a href="{{ affair.source }}" target="_blank">Source</a>
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center">No current affairs found.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Pagination -->
+        <div class="d-flex justify-content-center">
+            {% if current_affairs.has_other_pages %}
+                <ul class="pagination">
+                    {% if current_affairs.has_previous %}
+                        <li class="page-item"><a class="page-link" href="?page={{ current_affairs.previous_page_number }}">Previous</a></li>
+                    {% endif %}
+                    {% for num in current_affairs.paginator.page_range %}
+                        <li class="page-item {% if current_affairs.number == num %}active{% endif %}">
+                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                        </li>
+                    {% endfor %}
+                    {% if current_affairs.has_next %}
+                        <li class="page-item"><a class="page-link" href="?page={{ current_affairs.next_page_number }}">Next</a></li>
+                    {% endif %}
+                </ul>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>
+
+{% endblock content %}

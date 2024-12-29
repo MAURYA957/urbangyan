@@ -25,7 +25,7 @@ from drf_yasg import openapi
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
 from .models import Blog, User, QuizResult, UserSession, Comment, Offer, MockTestSubjectConfig, Quiz, Subject, SavedJob, \
-    ExperienceLevel, Order, Cart
+    ExperienceLevel, Order, Cart, AffairsCategory
 from django.contrib.auth import authenticate, login as auth_login
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
@@ -43,7 +43,8 @@ from .serializers import (
     QuestionsSerializer,
     UserSerializer,
     CustomTokenObtainPairSerializer, UserSessionSerializer, SubjectSerializer, UnitSerializer, OfferSerializer,
-    MockTestSerializer, SavedJobSerializer, ExperienceLevelSerializer, OrderSerializer, CartSerializer
+    MockTestSerializer, SavedJobSerializer, ExperienceLevelSerializer, OrderSerializer, CartSerializer,
+    AffairsCategorySerializer
 )
 
 # Set up a logger
@@ -493,7 +494,7 @@ def create_quiz_view(request):
         messages.success(request, 'quiz created successfully!')
 
         # Redirect after successful creation
-        return redirect(reverse('user_quizzes_view'))
+        return redirect(reverse('quiz-list-template'))
 
     return render(request, 'quiz/create_quiz.html', {'subjects': subjects})
 
@@ -1448,23 +1449,6 @@ def dashboard_view(request):
     return render(request, 'dashboard.html')  # Replace with your actual template
 
 
-"""def quiz_view(request, quiz_id=None):
-    if quiz_id:
-        # Filter the questions based on the quiz
-        quiz = Quiz.objects.get(id=quiz_id)
-        questions = Questions.objects.filter(quiz=quiz)
-    else:
-        # If no quiz_id is passed, show all quizzes
-        quizzes = Quiz.objects.all()
-
-    context = {
-        'quiz': quiz if quiz_id else None,
-        'questions': questions if quiz_id else None,
-        'quizzes': quizzes if not quiz_id else None,
-    }
-    return render(request, 'quiz_view.html', context)
-"""
-
 
 def questions_view(request, quiz_id):
     # Get the quiz object or return 404 if not found
@@ -2023,7 +2007,7 @@ def fetch_current_affairs():
     if response.status_code == 200:
         data = response.json()
         articles = data.get('news', [])
-        headlines = [{"title": article['title'], "url": article['url']} for article in articles[:10]]
+        headlines = [{"title": article['title'], "url": article['url']} for article in articles[:20]]
         return headlines
     else:
         print(f"Error fetching news: {response.status_code}, {response.text}")
@@ -2153,12 +2137,14 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from .models import Cart, Order
 
+from django.utils.timezone import now
+from django.db import transaction
+
 @login_required
 def add_to_cart(request, item_type, item_id):
     """
     Add an item (course or test) to the cart.
     """
-    # Determine the model based on item_type
     if item_type == 'course':
         model = Course
     elif item_type == 'test':
@@ -2166,10 +2152,8 @@ def add_to_cart(request, item_type, item_id):
     else:
         return JsonResponse({'error': 'Invalid item type'}, status=400)
 
-    # Fetch the item
     item = get_object_or_404(model, id=item_id)
 
-    # Check if the item is already in the cart
     cart_item, created = Cart.objects.get_or_create(
         user=request.user,
         product_id=item.id,
@@ -2177,7 +2161,6 @@ def add_to_cart(request, item_type, item_id):
         defaults={'quantity': 1},
     )
 
-    # If the item already exists in the cart, increase the quantity
     if not created:
         cart_item.quantity += 1
         cart_item.save()
@@ -2196,29 +2179,47 @@ def view_cart(request):
 
 
 @login_required
+@transaction.atomic
 def checkout(request):
     """
-    Checkout view to handle payment processing.
+    Checkout view to handle payment processing and order status updates.
     """
     cart_items = Cart.objects.filter(user=request.user)
 
     if not cart_items:
         return redirect('view_cart')
 
-    # Example: Simulate payment success
-    if request.method == 'POST':
-        # Payment logic here
-        cart_items.delete()  # Clear cart after payment
-        return render(request, 'order/payment_success.html')
-
     total_price = sum(item.total_price() for item in cart_items)
+    if request.method == 'POST':
+        # Create a new order and set the initial status
+        order = Order.objects.create(
+            user=request.user,
+            total_amount=total_price,
+            order_status="Payment Initiated"
+        )
+
+        # Update order status to "Payment Completed" after successful payment
+        order.order_status = "Payment Completed"
+        order.save()
+
+        # Clear the cart after successful payment
+        cart_items.delete()
+
+        return redirect('payment_success', order_id=order.id)
+
     return render(request, 'order/checkout.html', {'cart_items': cart_items, 'total_price': total_price})
+
 
 @login_required
 def payment(request, order_id):
+    """
+    Handle payment for a specific order.
+    """
     order = get_object_or_404(Order, id=order_id, user=request.user)
+
     if request.method == 'POST':
         # Simulate payment completion
+        order.order_status = "Payment Confirmed"
         order.payment_status = "Completed"
         order.save()
         return redirect('payment_success', order_id=order.id)
@@ -2228,11 +2229,138 @@ def payment(request, order_id):
 
 @login_required
 def payment_success(request, order_id):
-    order = Order.objects.get(id=order_id)
+    """
+    Display payment success page and update order validity.
+    """
+    order = get_object_or_404(Order, id=order_id, user=request.user)
 
-    # If the order is already paid, update its validity
     if order and not order.valid_until:
-        order.valid_until = order.created_at + timedelta(days=365)
+        order.valid_until = now() + timedelta(days=365)
         order.save()
 
-    return render(request, 'payment_success.html', {'order': order})
+    return render(request, 'order/payment_success.html', {'order': order})
+
+
+from rest_framework.exceptions import NotFound
+from .models import CurrentAffair
+from .serializers import CurrentAffairSerializer
+
+class CurrentAffairAPIView(APIView):
+    """
+    API for managing Current Affairs - supports create, retrieve, update, delete, and list.
+    """
+
+    def get_object(self, pk):
+        try:
+            return CurrentAffair.objects.get(pk=pk)
+        except CurrentAffair.DoesNotExist:
+            raise NotFound(detail="Current Affair not found.")
+
+    def get(self, request, pk=None):
+        """
+        Retrieve a single Current Affair by ID or list all Current Affairs.
+        """
+        if pk:
+            current_affair = self.get_object(pk)
+            serializer = CurrentAffairSerializer(current_affair)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        else:
+            current_affairs = CurrentAffair.objects.all()
+            serializer = CurrentAffairSerializer(current_affairs, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        """
+        Create a new Current Affair.
+        """
+        serializer = CurrentAffairSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def put(self, request, pk=None):
+        """
+        Update an existing Current Affair.
+        """
+        if not pk:
+            return Response({"detail": "ID is required for updating a record."}, status=status.HTTP_400_BAD_REQUEST)
+        current_affair = self.get_object(pk)
+        serializer = CurrentAffairSerializer(current_affair, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk=None):
+        """
+        Delete a Current Affair by ID.
+        """
+        if not pk:
+            return Response({"detail": "ID is required for deleting a record."}, status=status.HTTP_400_BAD_REQUEST)
+        current_affair = self.get_object(pk)
+        current_affair.delete()
+        return Response({"detail": "Current Affair deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
+
+
+from django.shortcuts import render
+from django.db.models import Q
+from datetime import datetime, timedelta
+from .models import CurrentAffair
+
+def current_affairs_list(request):
+    """
+    View to display the list of current affairs with filters for date range, category, and country.
+    """
+    search_query = request.GET.get('search', '')
+    category = request.GET.get('category', '')
+    country = request.GET.get('country', '')
+    date_filter = request.GET.get('date_filter', 'all')  # Default to 'all'
+
+    # Base queryset
+    affairs = CurrentAffair.objects.all()
+
+    # Apply search filter
+    if search_query:
+        affairs = affairs.filter(Q(title__icontains=search_query) | Q(country__icontains=search_query))
+
+    # Apply category filter
+    if category:
+        affairs = affairs.filter(category__id=category)
+
+    # Apply country filter
+    if country:
+        affairs = affairs.filter(country__icontains=country)
+
+    # Apply date filter
+    today = datetime.now().date()
+    if date_filter == 'current_week':
+        start_of_week = today - timedelta(days=today.weekday())
+        affairs = affairs.filter(date__gte=start_of_week, date__lte=today)
+    elif date_filter == 'current_month':
+        affairs = affairs.filter(date__year=today.year, date__month=today.month)
+    elif date_filter == 'current_year':
+        affairs = affairs.filter(date__year=today.year)
+    elif date_filter == 'previous_years':
+        affairs = affairs.filter(date__lt=datetime(today.year, 1, 1).date())
+
+    # Paginate results
+    paginator = Paginator(affairs, 10)  # Show 10 results per page
+    page_number = request.GET.get('page')
+    current_affairs = paginator.get_page(page_number)
+
+    context = {
+        'current_affairs': current_affairs,
+        'search_query': search_query,
+        'category': category,
+        'country': country,
+        'date_filter': date_filter,
+        'categories': AffairsCategory.objects.all(),  # Pass categories for dropdown
+        'countries': CurrentAffair.objects.values_list('country', flat=True).distinct(),  # Unique countries
+    }
+    return render(request, 'current_affairs_list.html', context)
+
+
+class AffairsCategoryViewSet(viewsets.ModelViewSet):
+    queryset = AffairsCategory.objects.all()
+    serializer_class = AffairsCategorySerializer
