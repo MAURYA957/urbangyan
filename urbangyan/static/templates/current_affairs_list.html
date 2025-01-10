@@ -87,7 +87,6 @@
             <thead>
                 <tr>
                     <th>Title</th>
-                    <th>Description</th>
                     <th>Date</th>
                     <th>Category</th>
                     <th>Country</th>
@@ -97,15 +96,14 @@
             <tbody>
                 {% for affair in current_affairs %}
                     <tr>
-                        <td>{{ affair.title }}</td>
                         <td>
+                           <h5 class="text-primary">{{ affair.title }}</h5>
                             <div id="description-{{ affair.id }}" class="description-container">
-                                {{ affair.description }}
+                                {{ affair.description|safe }}
                             </div>
-                            <span>{{ affair.description|truncatechars:100 }}</span>
                             <a href="javascript:void(0);" id="toggle-link-{{ affair.id }}" class="toggle-link" onclick="toggleDescription({{ affair.id }})">View Details</a>
                         </td>
-                        <td>{{ affair.date }}</td>
+                        <td class="text-primary">{{ affair.date }}</td>
                         <td>{{ affair.category.name }}</td>
                         <td>{{ affair.country }}</td>
                         <td>
@@ -118,7 +116,7 @@
                     </tr>
                 {% empty %}
                     <tr>
-                        <td colspan="6" class="text-center">No current affairs found.</td>
+                        <td colspan="5" class="text-center">No current affairs found.</td>
                     </tr>
                 {% endfor %}
             </tbody>
