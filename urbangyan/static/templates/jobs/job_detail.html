@@ -1,0 +1,196 @@
+{% extends 'base.html' %}
+
+{% block title %}Private Jobs{% endblock %}
+
+{% block content %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ job_details.exam_name }} - Job Details</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 0;
+        }
+        .video-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .video-overlay video {
+            max-width: 80%;
+            max-height: 80%;
+            border-radius: 10px;
+        }
+        .video-overlay .close-button {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: #ff5722;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .main-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            padding: 20px;
+        }
+        .job-container {
+            width: 80%;
+            background-color: #ffffff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        .header {
+            background-color: #007bff;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .save-button {
+            background-color: #ff5722;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            float: right;
+            margin: 10px;
+        }
+        .details-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .details-table th, .details-table td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        .details-table th {
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .ads-container {
+            margin-top: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- Video Overlay -->
+    <div class="video-overlay" id="videoOverlay">
+        {% for ad in active_ads %}
+            {% if ad.media_type == 'video' and ad.media_file %}
+                <video autoplay muted>
+                    <source src="{{ ad.media_file.url }}" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            {% elif ad.media_type == 'google' and ad.google_ad_code %}
+                <iframe src="{{ ad.url }}" width="80%" height="80%" style="border:none;"></iframe>
+            {% endif %}
+        {% endfor %}
+        <button class="close-button" onclick="closeVideo()">Close</button>
+    </div>
+
+    <div class="main-container" id="mainContent" style="display: none;">
+        <!-- Job Details Section -->
+        <div class="job-container">
+            <div class="header">
+                {{ job_details.exam_name|safe }} - {{ job_details.post_name|safe }}
+                <form method="POST" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" name="save_job" class="save-button">Save Job</button>
+                </form>
+            </div>
+            <table class="details-table">
+                <tr>
+                    <th>Recruiter</th>
+                    <td>{{ job_details.recruiter }}</td>
+                </tr>
+                <tr>
+                    <th>Advertisement Number</th>
+                    <td>{{ job_details.advertised_no }}</td>
+                </tr>
+                <tr>
+                    <th>Total Posts</th>
+                    <td>{{ job_details.total_post }}</td>
+                </tr>
+                <tr>
+                    <th>Eligibility</th>
+                    <td>{{ job_details.eligibility|safe }}</td>
+                </tr>
+                <tr>
+                    <th>Important Dates</th>
+                    <td>{{ job_details.important_date|safe }}</td>
+                </tr>
+                <tr>
+                    <th>Details</th>
+                    <td>{{ job_details.details|safe }}</td>
+                </tr>
+                {% if job_details.notification %}
+                <tr>
+                    <th>Notification</th>
+                    <td><a href="{{ job_details.notification.url }}" target="_blank">Download</a></td>
+                </tr>
+                {% endif %}
+                {% if job_details.apply_link %}
+                <tr>
+                    <th>Apply Link</th>
+                    <td><a href="{{ job_details.apply_link }}" target="_blank">Apply Here</a></td>
+                </tr>
+                {% endif %}
+                {% if job_details.admit_card_link %}
+                <tr>
+                    <th>Admit Card Link</th>
+                    <td><a href="{{ job_details.admit_card_link }}" target="_blank">Download Admit Card</a></td>
+                </tr>
+                {% endif %}
+                {% if job_details.result_link %}
+                <tr>
+                    <th>Result Link</th>
+                    <td><a href="{{ job_details.result_link }}" target="_blank">Check Result</a></td>
+                </tr>
+                {% endif %}
+                <tr>
+                    <th>Official Website</th>
+                    <td><a href="{{ job_details.official_website }}" target="_blank">{{ job_details.official_website }}</a></td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function closeVideo() {
+            document.getElementById('videoOverlay').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'block';
+        }
+
+        // Automatically close the video overlay after 30 seconds
+        setTimeout(() => {
+            closeVideo();
+        }, 30000);
+    </script>
+</body>
+</html>
+{% endblock %}

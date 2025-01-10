@@ -34,14 +34,14 @@ class Config:
     STATIC_URL = '/static/'
     MEDIA_URL = '/media/'
 
-    # PostgreSQL database settings
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': 'urbangyan',  # Replace with your actual database name
-            'USER': 'postgres',  # Replace with your actual database username
-            'PASSWORD': os.getenv('DB_PASSWORD', 'tri123VENI!@#'),  # Default database password
-            'HOST': '127.0.0.1',  # Set to 'localhost' if the DB is on the same machine
-            'PORT': '5432',  # Default PostgreSQL port
-        }
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',  # Use psycopg2 backend
+        'NAME': 'urbangyan',  # Replace with your actual database name
+        'USER': 'postgres',  # Replace with your actual database username
+        'PASSWORD': os.getenv('DB_PASSWORD', 'tri123VENI!@#'),  # Default database password
+        'HOST': '127.0.0.1',  # Set to 'localhost' if the DB is on the same machine
+        'PORT': '5432',  # Default PostgreSQL port
     }
+}
+

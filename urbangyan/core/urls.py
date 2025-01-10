@@ -19,7 +19,7 @@ from .views import (
     MockTestCreateView, MockTestUpdateView, MockTestDeleteView, MockTest_user, test_submit,
     mocktest_detailview, test_result, register_user, user_quizzes_view, quizzes_by_subject, AdvertisementViewSet,
     JobTypeViewSet, JobCategoryViewSet, JobStageViewSet, JobViewSet, SavedJobViewSet, ExperienceLevelViewSet,
-    CartViewSet, OrderViewSet, CurrentAffairAPIView, current_affairs_list, AffairsCategoryViewSet
+    CartViewSet, OrderViewSet, CurrentAffairAPIView, current_affairs_list, AffairsCategoryViewSet, job_detail_view
 )
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
@@ -196,6 +196,7 @@ urlpatterns = [
     #Jobs link
     path('sarkari-jobs/', views.sarkari_jobs, name='sarkari_jobs'),
     path('private-jobs/', views.private_jobs, name='private_jobs'),
+    path('sarkari-jobs/<int:pk>/', job_detail_view, name='job_detail'),
 
     # Add to cart: item_type can be 'course' or 'test'
     path('add-to-cart/<str:item_type>/<int:item_id>/', views.add_to_cart, name='add_to_cart'),

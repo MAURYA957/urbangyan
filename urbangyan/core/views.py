@@ -1963,35 +1963,6 @@ def subject_detail(request, pk):
     }
     return render(request, 'subject/subject_detail.html', context)
 
-
-"""
-@login_required
-def reply_comment(request, blog_pk, comment_pk):
-    blog = get_object_or_404(Blog, pk=blog_pk)
-    parent_comment = get_object_or_404(Comment, pk=comment_pk)
-
-    if request.method == 'POST' and request.is_ajax():
-        # Create the reply comment
-        reply = Comment(
-            blog=blog,
-            content=request.POST['content'],
-            author=request.user,
-            parent_comment=parent_comment
-        )
-        reply.save()
-
-        # Return the reply's details as a JSON response
-        response_data = {
-            'author': reply.author.username,
-            'content': reply.content,
-            'created_at': reply.created_at.strftime('%Y-%m-%d %H:%M:%S')
-        }
-        return JsonResponse(response_data)
-
-    return JsonResponse({'error': 'Invalid request'}, status=400)
-
-"""
-
 # Fetch current affairs
 import os
 import requests
@@ -2018,6 +1989,8 @@ def fetch_current_affairs():
 def CurrentAffaires(request):
     current_affairs = fetch_current_affairs()
     return render(request, 'news.html', {'current_affairs': current_affairs})
+
+
 
 from rest_framework import viewsets
 from .models import Advertisement, Job, JobType, JobCategory, JobStage
@@ -2072,13 +2045,34 @@ class SavedJobViewSet(viewsets.ModelViewSet):
 
 
 
+from django.core.paginator import Paginator
+from django.shortcuts import render
+from .models import Job, JobType, JobStage
+
 def sarkari_jobs(request):
     sarkari_type = JobType.objects.get(name="Sarkari")
     jobs = Job.objects.filter(job_type=sarkari_type).order_by('-created_at')
-    paginator = Paginator(jobs, 20)  # 20 jobs per page
+
+    # Assuming you have a JobStage model and it has a 'name' or similar field to identify stages
+    admit_card_stage = JobStage.objects.get(name='Admit Card Released')
+    result_declared_stage = JobStage.objects.get(name='Result Declared')
+
+    # Filter jobs by specific stages
+    admit_card_jobs = jobs.filter(stage=admit_card_stage)
+    result_declared_jobs = jobs.filter(stage=result_declared_stage)
+    other_jobs = jobs.exclude(stage__in=[admit_card_stage, result_declared_stage])
+
+    # Pagination for the other jobs
+    paginator = Paginator(other_jobs, 20)  # 20 jobs per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    return render(request, 'jobs/sarkari_jobs.html', {'page_obj': page_obj})
+
+    return render(request, 'jobs/sarkari_jobs.html', {
+        'page_obj': page_obj,
+        'admit_card_jobs': admit_card_jobs,
+        'result_declared_jobs': result_declared_jobs,
+    })
+
 
 def private_jobs(request):
     """
@@ -2090,6 +2084,36 @@ def private_jobs(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     return render(request, 'jobs/private_jobs.html', {'page_obj': page_obj})
+
+
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+from django.utils.timezone import now
+from .models import Job, SavedJob, Advertisement
+
+
+@login_required
+def job_detail_view(request, pk):
+    # Fetch job details or return a 404 if not found
+    job_details = get_object_or_404(Job, pk=pk)
+
+    # Fetch active advertisements
+    active_ads = Advertisement.objects.filter(is_active=True, expiry_date__gte=now())
+
+    # Handle job save functionality
+    if request.method == "POST" and "save_job" in request.POST:
+        job_link = request.build_absolute_uri()  # Generate full URL for the job
+        SavedJob.objects.get_or_create(user=request.user, job_link=job_link)
+        return redirect("job_detail", pk=pk)
+
+    # Context for rendering the template
+    context = {
+        'job_details': job_details,
+        'active_ads': active_ads,
+    }
+
+    return render(request, 'jobs/job_detail.html', context)
+
 
 # List and Create API View
 

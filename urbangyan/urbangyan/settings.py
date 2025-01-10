@@ -15,8 +15,13 @@ from pathlib import Path
 import os
 from datetime import datetime, timedelta
 
+from . import config
 from .config import Config, SUPERUSER
 from logging.handlers import TimedRotatingFileHandler
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 SUPERUSER_NAME = SUPERUSER['username']
 SUPERUSER_PASSWORD = SUPERUSER['password']
@@ -98,8 +103,20 @@ WSGI_APPLICATION = 'urbangyan.wsgi.application'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 # Database settings from config.py
-DATABASES = Config.DATABASES
+DATABASES = config.DATABASES
+"""
+DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql_psycopg2',  # Use psycopg2 backend
+            'NAME': 'urbangyan',  # Replace with your actual database name
+            'USER': 'postgres',  # Replace with your actual database username
+            'PASSWORD': os.getenv('DB_PASSWORD', 'tri123VENI!@#'),  # Default database password
+            'HOST': '127.0.0.1',  # Set to 'localhost' if the DB is on the same machine
+            'PORT': '5432',  # Default PostgreSQL port
+        }
+    }
 
+"""
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
 

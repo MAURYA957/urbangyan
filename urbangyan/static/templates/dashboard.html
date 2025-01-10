@@ -99,7 +99,7 @@
         <h3 class="interactive-marquee">Mining Knowledge Nurturing Generation</h3>
     </marquee>
     <div class="row">
-        <div class="col-md-6">
+   <!--     <div class="col-md-6">
             <div class="card">
                 <img src="{% static 'dashboard/course.png' %}" class="card-img-top" alt="Courses">
                 <div class="card-body">
@@ -114,7 +114,7 @@
                      {% endif %}
                 </div>
             </div>
-        </div>
+        </div> -->
         <div class="col-md-6">
             <div class="card">
                 <img src="{% static 'dashboard/course.png' %}" class="card-img-top" alt="Courses">
@@ -126,22 +126,6 @@
                     {% if user.is_staff_user or user.is_superuser %}
                     <a href="/subjects/create/" class="btn btn-create btn-custom">Create</a>
                     <a href="/subjects/" class="btn btn-alter btn-custom">Alter</a>
-                     {% endif %}
-                     {% endif %}
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card">
-                <img src="{% static 'dashboard/course.png' %}" class="card-img-top" alt="Courses">
-                <div class="card-body">
-                    <h5 class="card-title">Unit</h5>
-                    <p class="card-text">Browse available courses and save them for later.</p>
-                    <a href="/course_user/" class="btn btn-view btn-custom">View</a>
-                    {% if user.is_authenticated %}
-                    {% if user.is_staff_user or user.is_superuser %}
-                    <a href="/units/create/" class="btn btn-create btn-custom">Create</a>
-                    <a href="/units/" class="btn btn-alter btn-custom">Alter</a>
                      {% endif %}
                      {% endif %}
                 </div>
@@ -196,7 +180,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-6">
+       <!-- <div class="col-md-6">
             <div class="card">
                 <img src="{% static 'dashboard/quiz.png' %}" class="card-img-top" alt="Quiz">
                 <div class="card-body">
@@ -211,7 +195,7 @@
                      {% endif %}
                 </div>
             </div>
-        </div>
+        </div> -->
     {% if user.is_authenticated %}
     {% if user.is_staff_user or user.is_superuser %}
         <div class="col-md-6">
@@ -227,6 +211,22 @@
             </div>
         </div>
     </div>
+     <div class="col-md-6">
+            <div class="card">
+                <img src="{% static 'dashboard/course.png' %}" class="card-img-top" alt="Courses">
+                <div class="card-body">
+                    <h5 class="card-title">Unit</h5>
+                    <p class="card-text">Browse available courses and save them for later.</p>
+                    <a href="/course_user/" class="btn btn-view btn-custom">View</a>
+                    {% if user.is_authenticated %}
+                    {% if user.is_staff_user or user.is_superuser %}
+                    <a href="/units/create/" class="btn btn-create btn-custom">Create</a>
+                    <a href="/units/" class="btn btn-alter btn-custom">Alter</a>
+                     {% endif %}
+                     {% endif %}
+                </div>
+            </div>
+        </div>
     {% endif %}
     {% endif %}
 </div>
