@@ -19,7 +19,6 @@
         }
         .container {
             flex: 1;
-
         }
 
         /* Navbar Styling */
@@ -79,14 +78,16 @@
             margin-top: 1rem !important;
             padding: 1rem !important;
         }
-         /* Popup Styling */
+
+        /* Popup Styling */
         .popup {
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 200px;
-            height: 200px;
+            width: 300px;
+            max-width: 90%;
+            height: auto;
             background-color: white;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
             border-radius: 10px;
@@ -125,6 +126,20 @@
             z-index: 999;
             display: none;
         }
+
+        /* Footer responsiveness */
+        .footer .row {
+            display: flex;
+            flex-wrap: wrap;
+        }
+        .footer .col-md-4 {
+            margin-bottom: 1rem;
+        }
+        @media (max-width: 768px) {
+            .footer .col-md-4 {
+                text-align: center;
+            }
+        }
     </style>
     {% load static %}
 </head>
@@ -138,6 +153,8 @@
         <span>This website is running on donations. Donate to support continued service.</span>
     </strong>
 </div>
+
+<!-- Navbar -->
 <nav class="navbar navbar-expand-lg navbar-light">
     <div class="container">
         <a class="navbar-brand" href="/">
@@ -152,18 +169,12 @@
                 <li class="nav-item">
                     <a class="nav-link" href="/">Home</a>
                 </li>
-                <!-- <li class="nav-item">
-                    <a class="nav-link" href="/course_user/">Courses</a>
-                </li> -->
                 <li class="nav-item">
                     <a class="nav-link" href="/blog_user/">Blogs</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="/mocktest_user/">Mock_Test</a>
                 </li>
-               <!-- <li class="nav-item">
-                    <a class="nav-link" href="/quiz_view/">Quiz</a>
-                </li> -->
                 <li class="nav-item">
                     <a class="nav-link" href="/subjects_user/">Books</a>
                 </li>
@@ -173,9 +184,6 @@
                 <li class="nav-item">
                     <a class="nav-link" href="/sarkari-jobs/">Naukri</a>
                 </li>
-               <!-- <li class="nav-item">
-                    <a class="nav-link" href="/private-jobs/">Private</a>
-                </li> -->
                 <li class="nav-item">
                     <a class="nav-link" href="/news/">News</a>
                 </li>
@@ -216,29 +224,23 @@
     {% endblock %}
 </div>
 
+<!-- Footer -->
 <footer class="footer py-4">
     <div class="container">
-        <img src="{% static '/image/UPI.JPEG' %}" alt="Company Logo" width="150" height="150">
-        <strong class="ms-2 text-red fw-bold">
-    <span>This website is running on donations. Donate to support continued service.</span>
-</strong>
-      <!--   <div class="row">
-            <div class="col-md-4">
-                <h5>Newsletter</h5>
-                <form action="#" method="POST">
-                    <div class="input-group">
-                        <input type="email" class="form-control" placeholder="Enter your email" aria-label="Email">
-                        <button class="btn btn-outline-light" type="submit">Subscribe</button>
-                    </div>
-                </form>
-            </div> -->
-            <div class="col-md-4">
+        <div class="row">
+            <div class="col-12 col-md-4">
+                <img src="{% static '/image/UPI.JPEG' %}" alt="Company Logo" width="150" height="150">
+                <strong class="ms-2 text-red fw-bold">
+                    <span>This website is running on donations. Donate to support continued service.</span>
+                </strong>
+            </div>
+            <div class="col-12 col-md-4">
                 <h5>Quick Links</h5>
                 <ul class="list-unstyled">
                     <li><a href="/">Home</a></li>
                 </ul>
             </div>
-            <div class="col-md-4">
+            <div class="col-12 col-md-4">
                 <h5>Follow Us</h5>
                 <a href="https://www.facebook.com/Informationfromscratch" class="me-3"><i class="fab fa-facebook"></i> Facebook</a>
                 <a href="https://whatsapp.com/channel/0029VanRH7TGU3BBZA02NT3a" class="me-3"><i class="fab fa-twitter"></i> Whatsapp</a>
@@ -250,38 +252,16 @@
     </div>
 </footer>
 
+<!-- Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="{% static 'js/scripts.js' %}"></script>
 <script>
-    // Popup Functionality
-    document.addEventListener("DOMContentLoaded", function () {
-        const popup = document.querySelector('.popup');
-        const overlay = document.querySelector('.popup-overlay');
-        const closeBtn = document.querySelector('.popup .close-btn');
-
-        // Show popup
-        function showPopup() {
-            popup.style.display = 'block';
-            overlay.style.display = 'block';
-
-            // Auto close after 30 seconds
-            setTimeout(() => {
-                hidePopup();
-            }, 30000);
-        }
-
-        // Hide popup
-        function hidePopup() {
-            popup.style.display = 'none';
-            overlay.style.display = 'none';
-        }
-
-        // Event listeners
-        closeBtn.addEventListener('click', hidePopup);
-        overlay.addEventListener('click', hidePopup);
-
-        // Show popup on each page load
-        showPopup();
+    document.querySelector('.popup-overlay').addEventListener('click', function() {
+        document.querySelector('.popup').style.display = 'none';
+        document.querySelector('.popup-overlay').style.display = 'none';
+    });
+    document.querySelector('.popup .close-btn').addEventListener('click', function() {
+        document.querySelector('.popup').style.display = 'none';
+        document.querySelector('.popup-overlay').style.display = 'none';
     });
 </script>
 </body>

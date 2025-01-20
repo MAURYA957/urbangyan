@@ -52,12 +52,14 @@
             padding: 20px;
         }
         .job-container {
-            width: 80%;
+            width: 100%;
+            max-width: 900px;
             background-color: #ffffff;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
             border-radius: 10px;
             overflow: hidden;
             margin-bottom: 20px;
+            padding: 15px;
         }
         .header {
             background-color: #007bff;
@@ -94,6 +96,40 @@
         .ads-container {
             margin-top: 20px;
             text-align: center;
+        }
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .main-container {
+                padding: 10px;
+            }
+            .job-container {
+                padding: 10px;
+            }
+            .header {
+                font-size: 20px;
+            }
+            .save-button {
+                font-size: 14px;
+                padding: 8px 15px;
+            }
+            .details-table th, .details-table td {
+                font-size: 14px;
+                padding: 8px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header {
+                font-size: 18px;
+            }
+            .save-button {
+                font-size: 12px;
+                padding: 6px 12px;
+            }
+            .details-table th, .details-table td {
+                font-size: 12px;
+                padding: 6px;
+            }
         }
     </style>
 </head>
@@ -177,6 +213,21 @@
                     <td><a href="{{ job_details.official_website }}" target="_blank">{{ job_details.official_website }}</a></td>
                 </tr>
             </table>
+        </div>
+    </div>
+
+    <div class="ads-container">
+        <!-- Google Ads -->
+        <div class="google-ads">
+            <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+            <ins class="adsbygoogle"
+                 style="display:block"
+                 data-ad-client="{{ ads_config.publisher_id }}"
+                data-ad-slot="{{ ads_config.ad_slot }}"
+                 data-ad-format="auto"></ins>
+            <script>
+                 (adsbygoogle = window.adsbygoogle || []).push({});
+            </script>
         </div>
     </div>
 

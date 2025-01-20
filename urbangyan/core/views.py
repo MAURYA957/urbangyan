@@ -2093,11 +2093,10 @@ from django.utils.timezone import now
 from .models import Job, SavedJob, Advertisement
 
 
-@login_required
 def job_detail_view(request, pk):
     # Fetch job details or return a 404 if not found
     job_details = get_object_or_404(Job, pk=pk)
-
+    ads_config = AdSenseConfig.objects.first()
     # Fetch active advertisements
     active_ads = Advertisement.objects.filter(is_active=True, expiry_date__gte=now())
 
@@ -2111,6 +2110,7 @@ def job_detail_view(request, pk):
     context = {
         'job_details': job_details,
         'active_ads': active_ads,
+        'ads_config': ads_config,
     }
 
     return render(request, 'jobs/job_detail.html', context)
