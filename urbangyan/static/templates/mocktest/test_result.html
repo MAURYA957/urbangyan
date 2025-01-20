@@ -27,7 +27,7 @@
 </h5>
             <h5><strong>Correct Answers:</strong> {{ correct_count }} / {{ mocktest.total_questions }}</h5>
                 {% if badge_type == 'No Badge' %}
-                    <div class="badge-info mt-3">
+                    <div class="badge-info mt-6">
                         <i class="fas fa-medal text-muted fa-2x"></i>
                         <strong class="ml-2">No badge awarded yet.</strong>
                         <p>Try again to improve your score and earn a badge!</p>
@@ -38,7 +38,7 @@
                         <strong class="ml-2">Congratulations!</strong>
                         <p class="mt-2">
                             You earned the
-                            <span class="badge badge-{{ badge_type|lower }} p-2">
+                            <span class="badge text-success badge-{{ badge_type|lower }} p-2">
                             {% if badge_type == "Gold" %}
                                 <i class="fas fa-medal text-warning" style="animation: bounce 2s infinite;"></i>
                             {% elif badge_type == "Silver" %}

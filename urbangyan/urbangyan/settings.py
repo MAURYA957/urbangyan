@@ -45,8 +45,8 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'your-default-secret-key')  # L
 DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'  # Load debug setting from environment variable
 
 # ALLOWED_HOSTS setting
-ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', '127.0.0.1').split(
-    ',')  # Load allowed hosts from environment variable
+ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', '127.0.0.1,666a-2409-40d0-10c6-f40-f927-894d-afab-8037.ngrok-free.app').split(',')
+
 
 # Application definition
 INSTALLED_APPS = [
@@ -264,3 +264,11 @@ CKEDITOR_CONFIGS = {
         ]),
     },
 }
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://666a-2409-40d0-10c6-f40-f927-894d-afab-8037.ngrok-free.app',
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.ngrok-free.app',
+]

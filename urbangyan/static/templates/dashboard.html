@@ -119,7 +119,7 @@
             <div class="card">
                 <img src="{% static 'dashboard/course.png' %}" class="card-img-top" alt="Courses">
                 <div class="card-body">
-                    <h5 class="card-title">Subject</h5>
+                    <h5 class="card-title">Books</h5>
                     <p class="card-text">Browse available courses and save them for later.</p>
                     <a href="/subjects_user/" class="btn btn-view btn-custom">View</a>
                     {% if user.is_authenticated %}
@@ -142,6 +142,54 @@
                     {% if user.is_staff_user or user.is_superuser %}
                     <a href="/mocktest/new/" class="btn btn-create btn-custom">Create</a>
                     <a href="/mocktest/" class="btn btn-alter btn-custom">Alter</a>
+                     {% endif %}
+                     {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <img src="{% static 'dashboard/course.png' %}" class="card-img-top" alt="Courses">
+                <div class="card-body">
+                    <h5 class="card-title">Naukri</h5>
+                    <p class="card-text">Browse available naukri and save them for later.</p>
+                    <a href="/sarkari-jobs/" class="btn btn-view btn-custom">View</a>
+                    {% if user.is_authenticated %}
+                    {% if user.is_staff_user or user.is_superuser %}
+                    <a href="#" class="btn btn-create btn-custom">Create</a>
+                    <a href="#" class="btn btn-alter btn-custom">Alter</a>
+                     {% endif %}
+                     {% endif %}
+                </div>
+            </div>
+        </div>
+         <div class="col-md-6">
+            <div class="card">
+                <img src="{% static 'dashboard/course.png' %}" class="card-img-top" alt="Courses">
+                <div class="card-body">
+                    <h5 class="card-title">Current Affairs</h5>
+                    <p class="card-text">Browse available Current Affairs and save them for later.</p>
+                    <a href="/current-affairs-list/" class="btn btn-view btn-custom">View</a>
+                    {% if user.is_authenticated %}
+                    {% if user.is_staff_user or user.is_superuser %}
+                    <a href="#" class="btn btn-create btn-custom">Create</a>
+                    <a href="#" class="btn btn-alter btn-custom">Alter</a>
+                     {% endif %}
+                     {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <img src="{% static 'dashboard/course.png' %}" class="card-img-top" alt="Courses">
+                <div class="card-body">
+                    <h5 class="card-title">News</h5>
+                    <p class="card-text">Browse available news and save them for later.</p>
+                    <a href="/news/" class="btn btn-view btn-custom">View</a>
+                    {% if user.is_authenticated %}
+                    {% if user.is_staff_user or user.is_superuser %}
+                    <a href="#" class="btn btn-create btn-custom">Create</a>
+                    <a href="#" class="btn btn-alter btn-custom">Alter</a>
                      {% endif %}
                      {% endif %}
                 </div>

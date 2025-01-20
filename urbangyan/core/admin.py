@@ -8,7 +8,7 @@ class UserAdmin(admin.ModelAdmin):
     list_display = ('username', 'first_name', 'last_name', 'email', 'is_staff_user', 'is_visitor', 'created_at')
     search_fields = ('username', 'email', 'first_name', 'last_name')
     ordering = ('created_at',)
-    list_filter = ('is_staff_user', 'is_visitor', 'gender')
+    list_filter = ('is_staff_user', 'is_visitor')
 
 
 admin.site.register(User, UserAdmin)

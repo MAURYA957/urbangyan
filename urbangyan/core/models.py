@@ -18,17 +18,12 @@ class User(AbstractUser):
     first_name = models.CharField(max_length=100, blank=True)
     middle_name = models.CharField(max_length=100, blank=True)
     last_name = models.CharField(max_length=100)
-    profile = RichTextUploadingField(max_length=1000, null=True, blank=True)
     email = models.EmailField(unique=True)  # Ensure email is unique
     phone = models.CharField(max_length=15, blank=True)  # Allow blank
-    address = models.CharField(max_length=100, blank=True)  # Allow blank
-    country = models.CharField(max_length=100, default='De_data')
     state = models.CharField(max_length=100, default='De_data')
     city = models.CharField(max_length=100, default='De_data')
-    pin = models.CharField(max_length=10, default='De_data')  # Rename to lowercase 'pin'
     password = models.CharField(max_length=128)  # Use max_length=128 for hashed passwords
     user_type = models.CharField(max_length=50, default='De_data')  # Renamed to avoid conflict with built-in type
-    gender = models.CharField(max_length=100, default='De_data')
     image = models.ImageField(upload_to='user', blank=True)  # Allow blank images
     is_superuser = models.BooleanField(default=False)  # Inherited from AbstractUser
     is_staff_user = models.BooleanField(default=False)
@@ -597,3 +592,11 @@ class CurrentAffair(models.Model):
 
     def __str__(self):
         return f"{self.title} ({self.country})"
+
+class AdSenseConfig(models.Model):
+    publisher_id = models.CharField(max_length=50, help_text="Google AdSense Publisher ID (e.g., ca-pub-XXXXXXXXXXXXXXX)")
+    ad_slot = models.CharField(max_length=50, help_text="Google AdSense Ad Slot ID")
+    description = models.CharField(max_length=100, blank=True, help_text="Optional description for this ad slot")
+
+    def __str__(self):
+        return f"AdSense Config: {self.publisher_id} - {self.ad_slot}"

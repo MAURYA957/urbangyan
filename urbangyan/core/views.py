@@ -1,18 +1,12 @@
-from datetime import timedelta
-from urllib.request import Request
-
 from django.contrib.contenttypes.models import ContentType
 from django.http import JsonResponse
 from django.db import IntegrityError
-from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.urls import reverse
-from django.shortcuts import get_object_or_404
 from rest_framework.decorators import action
 from django.urls import reverse_lazy
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
-from django.core.paginator import Paginator
 from rest_framework import viewsets, generics
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -25,7 +19,7 @@ from drf_yasg import openapi
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
 from .models import Blog, User, QuizResult, UserSession, Comment, Offer, MockTestSubjectConfig, Quiz, Subject, SavedJob, \
-    ExperienceLevel, Order, Cart, AffairsCategory
+    ExperienceLevel, Order, Cart, AffairsCategory, AdSenseConfig
 from django.contrib.auth import authenticate, login as auth_login
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
@@ -334,17 +328,12 @@ def register_user(request):
             first_name = request.POST.get('first_name')
             middle_name = request.POST.get('middle_name')
             last_name = request.POST.get('last_name')
-            profile = request.POST.get('profile')
             email = request.POST.get('email')
             phone = request.POST.get('phone')
-            address = request.POST.get('address')
-            country = request.POST.get('country')
             state = request.POST.get('state')
             city = request.POST.get('city')
-            pin = request.POST.get('pin')
             password = request.POST.get('password')
             user_type = request.POST.get('user_type')
-            gender = request.POST.get('gender')
 
             # Validate required fields
 
@@ -364,16 +353,10 @@ def register_user(request):
                     middle_name=middle_name,
                     last_name=last_name,
                     email=email,
-                    profile=profile,
                     phone=phone,
-                    address=address,
-                    country=country,
                     state=state,
                     city=city,
-                    pin=pin,
                     password=password,
-                    user_type=user_type,
-                    gender=gender,
                     image=image,
                     is_active=True,  # Ensure the user is active by default
 
@@ -1720,9 +1703,27 @@ class MockTestDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
         return self.request.user == mock_test.user
 
 
+from django.core.paginator import Paginator
+
 def MockTest_user(request):
-    mocktests = MockTest.objects.all()  # Retrieve all MockTest instances
-    return render(request, 'mocktest/mock_test_user.html', {'mocktests': mocktests})
+    # Retrieve all MockTest instances
+    mocktests = MockTest.objects.all()
+
+    # Get the first AdSenseConfig instance (assuming only one config exists)
+    ads_config = AdSenseConfig.objects.first()
+
+    # Pagination (optional, if you have many mock tests)
+    paginator = Paginator(mocktests, 10)  # Show 10 mock tests per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        'ads_config': ads_config,
+        'mocktests': page_obj,  # Use paginated mocktests
+    }
+
+    return render(request, 'mocktest/mock_test_user.html', context)
+
 
 @login_required()
 def instructions_view(request, mocktest_id):
@@ -2340,6 +2341,7 @@ def current_affairs_list(request):
     category = request.GET.get('category', '')
     country = request.GET.get('country', '')
     date_filter = request.GET.get('date_filter', 'all')  # Default to 'all'
+    ads_config = AdSenseConfig.objects.first()
 
     # Base queryset
     affairs = CurrentAffair.objects.all()
@@ -2374,6 +2376,7 @@ def current_affairs_list(request):
     current_affairs = paginator.get_page(page_number)
 
     context = {
+        'ads_config': ads_config,
         'current_affairs': current_affairs,
         'search_query': search_query,
         'category': category,
