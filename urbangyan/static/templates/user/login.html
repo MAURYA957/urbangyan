@@ -129,7 +129,8 @@
                     <input type="password" class="form-control" id="password" name="password" placeholder="Enter your password" required>
                 </div>
                 <button type="submit" class="btn btn-primary btn-block">Login</button>
-                <a href="{% url 'dashboard' %}" class="btn btn-secondary btn-block">Cancel</a>
+                <a href="/password-reset/" class="btn btn-warning btn-block">Forgot Password</a>
+                <a href="{% url 'dashboard' %}" class="btn btn-danger btn-block">Cancel</a>
             </form>
         </div>
     </div>

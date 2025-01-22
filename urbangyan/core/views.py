@@ -333,7 +333,6 @@ def register_user(request):
             state = request.POST.get('state')
             city = request.POST.get('city')
             password = request.POST.get('password')
-            user_type = request.POST.get('user_type')
 
             # Validate required fields
 
@@ -384,7 +383,78 @@ def register_user(request):
 
     else:
         # Render the user registration page if it's a GET request
-        return render(request, 'create_user.html')
+        return render(request, 'user/create_user.html')
+
+@login_required
+def update_user_view(request, pk):
+    # Fetch the user to update
+    user = get_object_or_404(User, pk=pk)
+
+    # Ensure the logged-in user can only update their own profile
+    if user != request.user:
+        messages.error(request, "You can only update your own profile.")
+        return redirect('profile')
+
+    # Handle POST request
+    if request.method == 'POST':
+        # Get form data
+        first_name = request.POST.get('first_name')
+        middle_name = request.POST.get('middle_name')
+        last_name = request.POST.get('last_name')
+        email = request.POST.get('email')
+        phone = request.POST.get('phone')
+        state = request.POST.get('state')
+        city = request.POST.get('city')
+        password = request.POST.get('password')
+        image = request.FILES.get('image')
+
+        # Update user details
+        user.first_name = first_name
+        user.middle_name = middle_name
+        user.last_name = last_name
+        user.email = email
+        user.phone = phone
+        user.state = state
+        user.city = city
+
+        if image:
+            user.image = image
+
+        # Update password if provided
+        if password:
+            user.set_password(password)
+
+        # Save the updated user instance
+        user.save()
+
+        # Success message
+        messages.success(request, "Profile updated successfully!")
+
+        # Redirect after successful update
+        return redirect(reverse('dashboard'))  # Replace 'profile' with the appropriate URL name
+
+    # Render the update user form
+    return render(request, 'user/update_user.html', {'user': user})
+
+@login_required
+def delete_user_view(request, pk):
+    """
+    Allow a user to delete their own account with a confirmation prompt.
+    """
+    user = get_object_or_404(User, pk=pk)
+
+    # Ensure the logged-in user can only delete their own account
+    if request.user != user:
+        messages.error(request, "You can only delete your own account.")
+        return redirect(reverse('dashboard'))  # Redirect to the home page or any other page.
+
+    if request.method == "POST":
+        user.delete()
+        messages.success(request, "Your account has been deleted successfully.")
+        return redirect(reverse('dashboard'))  # Redirect to the home page after deletion.
+
+    return render(request, 'user/delete_user.html', {'user': user})
+
 
 
 class UserSessionListCreateAPIView(generics.ListCreateAPIView):
@@ -1393,7 +1463,7 @@ def login(request):
             messages.error(request, 'Invalid username or password.')
 
     logger.debug("Rendering the login page.")
-    return render(request, 'login.html')
+    return render(request, 'user/login.html')
 
 
 from django.contrib.auth import logout as auth_logout
@@ -1915,7 +1985,7 @@ def test_result(request, mocktest_id, submission_uuid):
             "attempted_question": len(attempted_responses),
             "total_question": total_question,
             "Incorrect_question": incorrect_count,
-            "Unattampted_question": len(unattempted_questions),
+            "unattempted_questions": len(unattempted_questions),
             "badge_type": badge_type,
             "exam_name": mocktest.Exam_Name,
         },
@@ -2103,7 +2173,13 @@ def job_detail_view(request, pk):
     # Handle job save functionality
     if request.method == "POST" and "save_job" in request.POST:
         job_link = request.build_absolute_uri()  # Generate full URL for the job
-        SavedJob.objects.get_or_create(user=request.user, job_link=job_link)
+        exam_name = request.GET.get('exam_name', 'others')  # Default to 'others' if not provided
+        SavedJob.objects.get_or_create(
+            user=request.user,
+            job_link=job_link,
+            defaults={'exam_name': exam_name}
+        )
+
         return redirect("job_detail", pk=pk)
 
     # Context for rendering the template
@@ -2114,7 +2190,6 @@ def job_detail_view(request, pk):
     }
 
     return render(request, 'jobs/job_detail.html', context)
-
 
 # List and Create API View
 
@@ -2391,3 +2466,34 @@ def current_affairs_list(request):
 class AffairsCategoryViewSet(viewsets.ModelViewSet):
     queryset = AffairsCategory.objects.all()
     serializer_class = AffairsCategorySerializer
+
+
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render
+from .models import SavedJob, Cart, Order, Badge, UserResponse, QuizResult
+
+@login_required
+def user_dashboard(request):
+    # Fetch data for the logged-in user
+    user = request.user
+    saved_jobs = SavedJob.objects.filter(user=user)
+    cart_items = Cart.objects.filter(user=user)
+    orders = Order.objects.filter(user=user)
+    badges = Badge.objects.filter(user=user)
+    user_responses = UserResponse.objects.filter(user=user)
+    quiz_results = QuizResult.objects.filter(user=user)
+
+    # Prepare context to pass to the template
+    context = {
+        'user': user,  # Directly passing the logged-in user
+        'saved_jobs': saved_jobs,
+        'cart_items': cart_items,
+        'orders': orders,
+        'badges': badges,
+        'user_responses': user_responses,
+        'quiz_results': quiz_results,
+    }
+
+    return render(request, 'user/user_dashboard.html', context)
+

@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import User, Blog, Comment, Offer, Subject, Course, Unit, Topic, Quiz, Questions, QuizResult, \
-    UserSession, MockTestSubjectConfig, MockTest, UserResponse, ExperienceLevel, Cart, Order
+    UserSession, MockTestSubjectConfig, MockTest, UserResponse, ExperienceLevel, Cart, Order, SavedJob
 
 
 # Customizing the User admin
@@ -147,7 +147,7 @@ from .models import Badge
 class BadgeAdmin(admin.ModelAdmin):
     list_display = (
         'id', 'user', 'badge_type', 'score', 'attempted_question', 'total_question', 'Incorrect_question',
-        'Unattampted_question',
+        'unattempted_questions',
         'exam_name', 'date_awarded')  # Fields to be displayed in the admin list view
     list_filter = ('badge_type', 'date_awarded', 'exam_name')  # Filters to help narrow down the data in the admin view
     search_fields = ('user__username', 'badge_type', 'exam_name')  # Fields that can be searched
@@ -298,3 +298,28 @@ class CurrentAffairAdmin(admin.ModelAdmin):
 class AffairsCategoryAdmin(admin.ModelAdmin):
     list_display = ('name', 'description', 'created_at')
     search_fields = ('name',)
+
+
+from .models import AdSenseConfig
+
+class AdSenseConfigAdmin(admin.ModelAdmin):
+    list_display = ('publisher_id', 'ad_slot', 'description')
+    search_fields = ('publisher_id', 'ad_slot')
+    list_filter = ('publisher_id',)
+    ordering = ('publisher_id',)
+
+admin.site.register(AdSenseConfig, AdSenseConfigAdmin)
+
+
+@admin.register(SavedJob)
+class SavedJobAdmin(admin.ModelAdmin):
+    list_display = ('user', 'job_link', 'exam_name', 'created_at')
+    list_filter = ('exam_name', 'created_at')
+    search_fields = ('user__username', 'job_link', 'exam_name')
+    ordering = ('-created_at',)
+    readonly_fields = ('created_at',)
+    fieldsets = (
+        (None, {
+            'fields': ('user', 'job_link', 'exam_name', 'created_at'),
+        }),
+    )

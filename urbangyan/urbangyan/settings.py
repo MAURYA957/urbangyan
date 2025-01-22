@@ -272,3 +272,11 @@ CSRF_TRUSTED_ORIGINS = [
 CSRF_TRUSTED_ORIGINS = [
     'https://*.ngrok-free.app',
 ]
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'urbangyanin@gmail.com'  # Replace with your email
+EMAIL_HOST_PASSWORD = 'bgru zsro bvfu ivqi'  # Replace with your email password
+DEFAULT_FROM_EMAIL = 'Urban Gyan Admin'

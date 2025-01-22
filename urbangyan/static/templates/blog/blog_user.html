@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-
+{% load custom_filters %}
 {% block content %}
 <div class="container mt-4" style="border: 3px solid orange; border-radius: 8px; padding: 20px; background-color: #fff8e1;">  <!-- Orange thick border and light yellow background -->
     <h4 class="text-center mb-4" style="background-color: #ffcc80; padding: 10px; border-radius: 5px; color: #4e342e;">Blogs</h4> <!-- Warm orange background and brown text for the title -->
@@ -12,8 +12,8 @@
                         <strong class="card-title" style="color: #0277bd; font-size: 1.2em;">{{ blog.title }}</strong>  <!-- Blog title with a bold blue color -->
 
                         <div class="card-content mt-2" style="color: #4e342e;">  <!-- Subtle brown text for content -->
-                            {% if blog.content|length > 50 %}
-                                {{ blog.content|slice:":50" }}...  <!-- Show first 50 characters -->
+                            {% if blog.content|truncate_html:50|safe|length > 50 %}
+                                {{ blog.content|safe|slice:":50" }}...  <!-- Show first 50 characters -->
                                 <a href="{% url 'blog-detail-template' blog.pk %}" class="btn btn-link p-0" style="color: #0288d1;">View More</a>  <!-- Link styled as blue -->
                             {% else %}
                                 {{ blog.content }}

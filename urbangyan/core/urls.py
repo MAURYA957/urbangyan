@@ -19,13 +19,15 @@ from .views import (
     MockTestCreateView, MockTestUpdateView, MockTestDeleteView, MockTest_user, test_submit,
     mocktest_detailview, test_result, register_user, user_quizzes_view, quizzes_by_subject, AdvertisementViewSet,
     JobTypeViewSet, JobCategoryViewSet, JobStageViewSet, JobViewSet, SavedJobViewSet, ExperienceLevelViewSet,
-    CartViewSet, OrderViewSet, CurrentAffairAPIView, current_affairs_list, AffairsCategoryViewSet, job_detail_view
+    CartViewSet, OrderViewSet, CurrentAffairAPIView, current_affairs_list, AffairsCategoryViewSet, job_detail_view,
+    update_user_view, delete_user_view
 )
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 from django.conf import settings
 from django.conf.urls.static import static
+from django.contrib.auth import views as auth_views
 
 
 
@@ -111,8 +113,15 @@ urlpatterns = [
 
     # User management URLs
     path('create_user/', register_user, name='create_user'),
-    path('update_user/', TemplateView.as_view(template_name='update_user.html'), name='update_user'),
-    path('delete_user/', TemplateView.as_view(template_name='delete_user.html'), name='delete_user'),
+    path('user/<int:pk>/update/', update_user_view, name='update_user'),
+    path('user/<int:pk>/delete/', delete_user_view, name='delete_user'),
+    path('user_dashboard/', views.user_dashboard, name='user_dashboard'),
+    # Password reset URLs
+    path('password-reset/', auth_views.PasswordResetView.as_view(template_name='user/password_reset.html'), name='password_reset'),
+    path('password-reset/done/', auth_views.PasswordResetDoneView.as_view(template_name='user/password_reset_done.html'), name='password_reset_done'),
+    path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(template_name='user/password_reset_confirm.html'), name='password_reset_confirm'),
+    path('reset/done/', auth_views.PasswordResetCompleteView.as_view(template_name='user/password_reset_complete.html'), name='password_reset_complete'),
+
 
     # Questions URLs
     path('questions/', views.list_questions_view, name='questions-list-template'),

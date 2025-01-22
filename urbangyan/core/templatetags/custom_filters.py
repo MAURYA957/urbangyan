@@ -21,3 +21,7 @@ def clean_text(value):
         return ""
     value = re.sub(r'\s+', ' ', value)  # Replace all whitespace (including newlines) with a single space
     return value.strip()
+
+@register.filter
+def add_class(value, arg):
+    return value.as_widget(attrs={'class': arg})

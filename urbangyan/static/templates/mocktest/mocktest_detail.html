@@ -55,10 +55,10 @@
         <!-- Sticky Header with timer, total questions, and attempted count -->
         <div class="d-flex justify-content-between align-items-center">
             <div class="timer-block">
-                <strong><h2><i class="fa fa-clock" style="color: DodgerBlue;"></i> Duration: {{ test_duration }} minutes</h2></strong>
+                <strong><h2><i class="fa fa-clock" style="color: DodgerBlue;"></i> Duration: {{ test_duration }}:00 minutes</h2></strong>
             </div>
             <div class="attempted-questions-block">
-                <strong><h2><i class="fa fa-clock" style="color: DodgerBlue;"></i> <span id="timer" aria-live="polite">Time Left: {{ test_duration }}:00</span></h2></strong>
+                <strong><h2><i class="fa fa-clock" style="color: DodgerBlue;"></i> <span id="timer" aria-live="polite">Time Left: {{ test_duration }}</span></h2></strong>
             </div>
             <div class="attempted-questions-block">
                 <strong><h2><i class="fa fa-list" style="color: green;"></i> Attempted: <span id="attempted-count">0</span> / {{ questions|length }}</h2></strong>
@@ -128,13 +128,24 @@
         // Timer Functionality
         let timeLeft = {{ test_duration|default:0|safe }} * 60;
         const timerElement = document.getElementById('timer');
+        const formElement = document.getElementById('TestForm');
         setInterval(() => {
-            if (timeLeft > 0) {
+            if (timeLeft >= 0) {
                 const minutes = Math.floor(timeLeft / 60);
                 const seconds = timeLeft % 60;
                 timerElement.textContent = `Time Left: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+                console.log(`Time left: ${minutes}:${seconds}`);
                 timeLeft--;
+            } if (timeLeft === 0) {
+            timerElement.textContent = "Time's up!";
+            try {
+                formElement.submit(); // Attempt to submit the form
+                console.log("Form submitted successfully.");
+            } catch (error) {
+                console.error("Error while submitting the form:", error);
             }
+            clearInterval(timerInterval); // Stop the timer after submitting the form
+        }
         }, 1000);
 
         // Update Progress Bar

@@ -39,3 +39,4 @@ lxml>=4.9,<5.0
 charset-normalizer
 requests
 dotenv
+pip install sendgrid

@@ -1,0 +1,220 @@
+{% extends 'base.html' %}
+
+{% block title %}User Dashboard{% endblock %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3 col-sm-12 p-0">
+            <div class="sidebar bg-light shadow-sm">
+                <div class="d-flex justify-content-center py-4 active">
+                    {% if user.image %}
+                        <img src="{{ user.image.url }}" alt="User Photo" class="rounded-circle border border-success shadow-sm" width="200" height="200">
+                    {% else %}
+                        <img src="{% static 'image/img.png' %}" alt="Default User Photo" class="rounded-circle border" width="200" height="200">
+                    {% endif %}
+                </div>
+                <div class="list-group">
+                    <a href="#user-info" class="list-group-item list-group-item-action" data-bs-toggle="collapse" aria-expanded="false" aria-controls="user-info">
+                    <strong>
+                        <i class="bi bi-person-circle me-2"></i> User Info
+                    </strong>
+                    </a>
+                    <a href="#saved-jobs" class="list-group-item list-group-item-action " data-bs-toggle="collapse" aria-expanded="false" aria-controls="saved-jobs">
+                        <strong><i class="bi bi-briefcase me-2"></i> Saved Jobs</strong>
+                    </a>
+                    <a href="#cart" class="list-group-item list-group-item-action" data-bs-toggle="collapse" aria-expanded="false" aria-controls="cart">
+                        <strong><i class="bi bi-cart me-2"></i> Cart</strong>
+                    </a>
+                    <a href="#orders" class="list-group-item list-group-item-action" data-bs-toggle="collapse" aria-expanded="false" aria-controls="orders">
+                       <strong><i class="bi bi-box me-2"></i> Orders</strong>
+                    </a>
+                    <a href="#badges" class="list-group-item list-group-item-action" data-bs-toggle="collapse" aria-expanded="false" aria-controls="badges">
+                        <strong><i class="bi bi-patch-check me-2"></i> Badges</strong>
+                    </a>
+                    <a href="#user-responses" class="list-group-item list-group-item-action" data-bs-toggle="collapse" aria-expanded="false" aria-controls="user-responses">
+                        <strong><i class="bi bi-check-circle me-2"></i> User Responses</strong>
+                    </a>
+                    <a href="#quiz-results" class="list-group-item list-group-item-action" data-bs-toggle="collapse" aria-expanded="false" aria-controls="quiz-results">
+                        <strong><i class="bi bi-bar-chart me-2"></i> Quiz Results</strong>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-md-9 col-sm-12">
+            <div id="user-info" class="collapse show">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h4>User Info</h4>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group">
+                            <li class="list-group-item"><strong>Username:</strong> {{ user.username }}</li>
+                            <li class="list-group-item"><strong>Full Name:</strong> {{ user.first_name }} {{ user.middle_name }} {{ user.last_name }}</li>
+                            <li class="list-group-item"><strong>Phone:</strong> {{ user.phone }}</li>
+                            <li class="list-group-item"><strong>Email:</strong> {{ user.email }}</li>
+                            <li class="list-group-item"><strong>City:</strong> {{ user.city }}</li>
+                            <li class="list-group-item"><strong>State:</strong> {{ user.state }}</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div id="saved-jobs" class="collapse">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-info text-white">
+                        <h4>Saved Jobs</h4>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group">
+                            {% for job in saved_jobs %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <a href="{{ job.job_link }}" target="_blank" class="text-decoration-none text-success">{{ job.job_link }}</a>
+                                    <span class="badge bg-info">{{ job.created_at|date:"Y-m-d H:i" }}</span>
+                                </li>
+                            {% empty %}
+                                <li class="list-group-item text-muted">No saved jobs</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div id="cart" class="collapse">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-warning text-white">
+                        <h4>Cart</h4>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group">
+                            {% for item in cart_items %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    {{ item.product }} - Quantity: {{ item.quantity }}
+                                    <span class="badge bg-secondary">In Cart</span>
+                                </li>
+                            {% empty %}
+                                <li class="list-group-item text-muted">No items in cart</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div id="orders" class="collapse">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-success text-white">
+                        <h4>Orders</h4>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group">
+                            {% for order in orders %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    Order ID: <strong>{{ order.order_id }}</strong> - Total: ₹{{ order.total_amount }}
+                                    <span class="badge bg-primary">{{ order.order_status }}</span>
+                                    <span class="badge bg-light">{{ order.created_at|date:"Y-m-d" }}</span>
+                                </li>
+                            {% empty %}
+                                <li class="list-group-item text-muted">No orders</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+           <div id="badges" class="collapse">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-info text-white">
+                        <h4>Badges</h4>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-bordered table-striped">
+                            <thead class="table-info">
+                                <tr>
+                                    <th>Exam Name</th>
+                                    <th>Score</th>
+                                    <th>Total Questions</th>
+                                    <th>Attempted</th>
+                                    <th>Incorrect</th>
+                                    <th>Unattempted</th>
+                                    <th>Badge Type</th>
+                                    <th>Date Awarded</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for badge in badges %}
+                                    <tr>
+                                        <td>{{ badge.exam_name }}</td>
+                                        <td>{{ badge.score }}</td>
+                                        <td>{{ badge.total_question }}</td>
+                                        <td>{{ badge.attempted_question }}</td>
+                                        <td>{{ badge.Incorrect_question }}</td>
+                                        <td>{{ badge.Unattampted_question }}</td>
+                                        <td>{{ badge.badge_type }}</td>
+                                        <td>{{ badge.date_awarded|date:"Y-m-d" }}</td>
+                                    </tr>
+                                {% empty %}
+                                    <tr>
+                                        <td colspan="8" class="text-center text-muted">No badges earned</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="user-responses" class="collapse">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-danger text-white">
+                        <h4>User Responses</h4>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group">
+                            {% for response in user_responses %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    Question: {{ response.question }} - Answer: {{ response.selected_option }}
+                                    <span class="badge {% if response.is_correct %}bg-success{% else %}bg-danger{% endif %}">
+                                        {% if response.is_correct %}Correct{% else %}Incorrect{% endif %}
+                                    </span>
+                                </li>
+                            {% empty %}
+                                <li class="list-group-item text-muted">No responses</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div id="quiz-results" class="collapse">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-warning text-white">
+                        <h4>Quiz Results</h4>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group">
+                            {% for result in quiz_results %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    Quiz: {{ result.quiz }} - Score: {{ result.score }} / {{ result.total_questions }}
+                                    <span class="badge bg-success">{{ result.correct_answers }} Correct</span>
+                                </li>
+                            {% empty %}
+                                <li class="list-group-item text-muted">No quiz results</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<style>
+    .list-group-item.fw-bold {
+    background-color: #f8f9fa; /* Light gray background */
+    border-bottom: 2px solid #dee2e6; /* Distinct border for separation */
+}
+</style>
+{% endblock %}

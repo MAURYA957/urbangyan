@@ -377,11 +377,11 @@ class UserResponse(models.Model):
 class Badge(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     submission_id = models.UUIDField(default=uuid.uuid4, editable=False)  # Unique submission ID
-    score = models.IntegerField(default=0)  # Changed to IntegerField
+    score = models.FloatField(default=0.0) # Changed to IntegerField
     attempted_question = models.IntegerField(default=0)  # Changed to IntegerField
     total_question = models.IntegerField(default=0)  # Changed to IntegerField
     Incorrect_question = models.IntegerField(default=0)  # Changed to IntegerField
-    Unattampted_question = models.IntegerField(default=0)  # Changed to IntegerField
+    unattempted_questions = models.IntegerField(default=0)  # Changed to IntegerField
     mock_test = models.ForeignKey(MockTest, on_delete=models.CASCADE)
     badge_type = models.CharField(max_length=100)
     date_awarded = models.DateTimeField(auto_now_add=True)
@@ -491,6 +491,7 @@ class Job(models.Model):
 class SavedJob(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, help_text="The user who saved the job.")
     job_link = models.URLField(help_text="Link to the saved job.")
+    exam_name = models.CharField(default='others', help_text="Exam name of saved job.")
     created_at = models.DateTimeField(auto_now_add=True, help_text="The date and time when the job was saved.")
 
     def __str__(self):
