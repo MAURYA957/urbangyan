@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 
 {% block content %}
-<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -30,23 +29,9 @@
         <div class="col-md-6 offset-md-3">
             <div class="form-container">
                 <h1 class="text-center mb-4">Create Question</h1>
-
+                <a href="/upload_questions_template/" class="btn btn-info">Upload Question</a>
                 <form method="post" class="form-horizontal">
                     {% csrf_token %}
-
-                    <!-- quiz Dropdown -->
-                    <div class="form-group">
-                        <label for="quiz">Select Quiz:</label>
-                        <select id="quiz" name="quiz" class="form-control" required>
-                            <option value="">Select Quiz</option>
-                            {% for quiz in quizzes %}
-                                <option value="{{ quiz.pk }}">{{ quiz.quiz }}</option>
-                            {% empty %}
-                                <option disabled>No quizzes available</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
 
                     <!-- Subject Dropdown -->
                     <div class="form-group">
@@ -58,6 +43,22 @@
                             {% empty %}
                                 <option disabled>No subjects available</option>
                             {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Unit Dropdown -->
+                    <div class="form-group">
+                        <label for="unit">Select Unit:</label>
+                        <select id="unit" name="unit" class="form-control" required>
+                            <option value="">Select Unit</option>
+                        </select>
+                    </div>
+
+                    <!-- Topic Dropdown -->
+                    <div class="form-group">
+                        <label for="topic">Select Topic:</label>
+                        <select id="topic" name="topic" class="form-control" required>
+                            <option value="">Select Topic</option>
                         </select>
                     </div>
 
@@ -122,18 +123,103 @@
 <!-- Scripts -->
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 <script>
-        // Initialize CKEditor
-        CKEDITOR.replace('question');
-        CKEDITOR.replace('option_1');
-        CKEDITOR.replace('option_2');
-        CKEDITOR.replace('option_3');
-        CKEDITOR.replace('option_4');
-        CKEDITOR.replace('explanation');
+    // Initialize CKEditor for specified fields
+    CKEDITOR.replace('question');
+    CKEDITOR.replace('option_1');
+    CKEDITOR.replace('option_2');
+    CKEDITOR.replace('option_3');
+    CKEDITOR.replace('option_4');
+    CKEDITOR.replace('explanation');
 
-        // Sync CKEditor data on form submit
-        $('form').on('submit', function () {
-            for (var instance in CKEDITOR.instances) {
-                CKEDITOR.instances[instance].updateElement();
+    // Sync CKEditor data with form on submit
+    $('form').on('submit', function () {
+        for (var instance in CKEDITOR.instances) {
+            CKEDITOR.instances[instance].updateElement();
+        }
+    });
+
+    $(document).ready(function () {
+        // CSRF Token Setup for AJAX Requests
+        $.ajaxSetup({
+            headers: { "X-CSRFToken": "{{ csrf_token }}" }
+        });
+
+        // Function to log AJAX responses for debugging
+        function logResponse(endpoint, response) {
+            console.log(`Response from ${endpoint}:`, response);
+        }
+
+        // Function to handle AJAX errors
+        function handleError(endpoint, xhr, status, error) {
+            console.error(`Error in ${endpoint}:`, error);
+            console.error(`Status: ${status}`);
+            console.error(`Response:`, xhr.responseText);
+            alert(`Failed to load data from ${endpoint}. Please try again.`);
+        }
+
+        // Update Units Dropdown when Subject is selected
+        $('#subject').on('change', function () {
+            const subjectId = $(this).val(); // Get selected Subject ID
+            if (subjectId) {
+                $.ajax({
+                    url: '{% url "filter_units" %}', // Django URL for filtering units
+                    type: 'GET',
+                    data: { subject_id: subjectId },
+                    success: function (data) {
+                        logResponse('filter_units', data);
+
+                        // Clear and Populate Units Dropdown
+                        $('#unit').html('<option value="">Select Unit</option>');
+                        if (data.units.length > 0) {
+                            data.units.forEach(unit => {
+                                $('#unit').append(`<option value="${unit.id}">${unit.title}</option>`);
+                            });
+                        } else {
+                            $('#unit').append('<option disabled>No units available</option>');
+                        }
+
+                        // Clear Topics Dropdown
+                        $('#topic').html('<option value="">Select Topic</option>');
+                    },
+                    error: function (xhr, status, error) {
+                        handleError('filter_units', xhr, status, error);
+                    }
+                });
+            } else {
+                // Reset Units and Topics if no Subject is selected
+                $('#unit').html('<option value="">Select Unit</option>');
+                $('#topic').html('<option value="">Select Topic</option>');
+            }
+        });
+
+        // Update Topics Dropdown when Unit is selected
+        $('#unit').on('change', function () {
+            const unitId = $(this).val(); // Get selected Unit ID
+            if (unitId) {
+                $.ajax({
+                    url: '{% url "filter_topics" %}', // Django URL for filtering topics
+                    type: 'GET',
+                    data: { unit_id: unitId },
+                    success: function (data) {
+                        logResponse('filter_topics', data);
+
+                        // Clear and Populate Topics Dropdown
+                        $('#topic').html('<option value="">Select Topic</option>');
+                        if (data.topics.length > 0) {
+                            data.topics.forEach(topic => {
+                                $('#topic').append(`<option value="${topic.id}">${topic.topic}</option>`);
+                            });
+                        } else {
+                            $('#topic').append('<option disabled>No topics available</option>');
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        handleError('filter_topics', xhr, status, error);
+                    }
+                });
+            } else {
+                // Reset Topics if no Unit is selected
+                $('#topic').html('<option value="">Select Topic</option>');
             }
         });
     });
@@ -141,3 +227,4 @@
 </body>
 </html>
 {% endblock content %}
+

@@ -81,20 +81,8 @@
             <form method="post" enctype="multipart/form-data">
                 {% csrf_token %}
                 <div class="mb-3">
-                    <label for="username" class="form-label">Username:</label>
-                    <input type="text" id="username" name="username" value="{{ user.username }}" class="form-control" disabled>
-                </div>
-                <div class="mb-3">
-                    <label for="first_name" class="form-label">First Name:</label>
-                    <input type="text" id="first_name" name="first_name" value="{{ user.first_name }}" class="form-control" placeholder="Enter your first name" required>
-                </div>
-                <div class="mb-3">
-                    <label for="middle_name" class="form-label">Middle Name:</label>
-                    <input type="text" id="middle_name" name="middle_name" value="{{ user.middle_name }}" class="form-control" placeholder="Enter your middle name (optional)">
-                </div>
-                <div class="mb-3">
-                    <label for="last_name" class="form-label">Last Name:</label>
-                    <input type="text" id="last_name" name="last_name" value="{{ user.last_name }}" class="form-control" placeholder="Enter your last name" required>
+                    <label for="full_name" class="form-label">Full Name:</label>
+                    <input type="text" id="full_name" name="full_name" value="{{ user.full_name }}" class="form-control" placeholder="Enter your full name" required>
                 </div>
                 <div class="mb-3">
                     <label for="email" class="form-label">Email:</label>

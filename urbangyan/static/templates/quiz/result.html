@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-5 text-center">
+    <div class="card shadow-lg p-4 rounded-lg">
+        <h2 class="text-primary fw-bold">Quiz Results</h2>
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <ul class="list-group list-group-flush text-start">
+                    <li class="list-group-item"><strong>Total Questions:</strong> {{ total_questions }}</li>
+                    <li class="list-group-item"><strong>Attempted Questions:</strong> {{ attempted_questions }}</li>
+                    <li class="list-group-item text-success"><strong>Correct Answers:</strong> {{ correct_answers }}</li>
+                    <li class="list-group-item text-danger"><strong>Wrong Answers:</strong> {{ wrong_answers }}</li>
+                    <li class="list-group-item text-warning"><strong>Unattempted Questions:</strong> {{ unattempted_questions }}</li>
+                    <li class="list-group-item"><strong>Score:</strong> <span class="badge bg-info text-dark">{{ score|floatformat:2 }}%</span></li>
+                </ul>
+            </div>
+        </div>
+
+        <h3 class="mt-4 text-secondary">Question Details</h3>
+        <div class="table-responsive">
+            <table class="table table-striped table-hover border">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Question</th>
+                        <th>Selected Answer</th>
+                        <th>Correct Answer</th>
+                        <th>Attempted</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for result in question_results %}
+                    <tr class="{% if result.status == 'Correct' %}table-success{% elif result.status == 'Wrong' %}table-danger{% else %}table-warning{% endif %}">
+                        <td>{{ result.question|safe }}</td>
+                        <td>{{ result.selected_answer|safe }}</td>
+                        <td>{{ result.correct_answer|safe }}</td>
+                        <td>{{ result.attempted|safe }}</td>
+                        <td><span class="badge {% if result.status == 'Correct' %}bg-success{% elif result.status == 'Wrong' %}bg-danger{% else %}bg-warning{% endif %}">{{ result.status }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <a href="/subjects_user/" class="btn btn-lg btn-primary mt-3 shadow-sm">🎯 Retake Quiz</a>
+    </div>
+</div>
+{% endblock %}

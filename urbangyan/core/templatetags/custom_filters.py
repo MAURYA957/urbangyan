@@ -25,3 +25,16 @@ def clean_text(value):
 @register.filter
 def add_class(value, arg):
     return value.as_widget(attrs={'class': arg})
+
+
+register = template.Library()
+
+@register.filter
+def add(value, arg):
+    """Adds the arg to the value."""
+    return value + arg
+
+@register.filter
+def get_option(value, arg):
+    # Custom logic here
+    return value.get(arg, 'Default')

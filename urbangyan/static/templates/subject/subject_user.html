@@ -4,47 +4,102 @@
 {% block content %}
 <div class="container mt-4">
     <!-- Title with a gradient background -->
-    <h4 class="text-center text-white py-2" style="background: linear-gradient(90deg, #ffa726, #fb8c00); border-radius: 5px;">
-        Subjects
+    <h4 class="text-center text-white py-3" style="background: linear-gradient(90deg, #ff6f00, #ff8f00); border-radius: 8px;">
+        Explore Subjects
     </h4>
-
     <div class="row mt-3">
         {% for subject in subjects %}
-            <div class="col-md-3 mb-4">
-                <div class="card h-100" style="background-color: #ffffff; border: 2px solid #ffa726; border-radius: 10px;">
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 shadow-lg" style="background-color: #ffffff; border-radius: 15px; transition: transform 0.3s ease-in-out;">
 
                     <!-- Subject Image -->
                     {% if subject.image %}
-                        <img src="{{ subject.image.url }}" class="card-img-top img-thumbnail"
-                             alt="{{ subject.name }}"
-                             style="max-height: 150px; object-fit: cover; border-top-left-radius: 10px; border-top-right-radius: 10px;">
+                        <img src="{{ subject.image.url }}" class="card-img-top img-fluid" alt="{{ subject.name }}"
+                             style="height: 200px; object-fit: cover; border-top-left-radius: 15px; border-top-right-radius: 15px;">
                     {% else %}
-                        <div class="text-center py-5" style="background-color: #f0f0f0; border-top-left-radius: 10px; border-top-right-radius: 10px;">
-                            <i class="fas fa-book fa-3x text-muted"></i>
+                        <div class="text-center py-5" style="background-color: #f5f5f5; border-top-left-radius: 15px; border-top-right-radius: 15px;">
+                            <i class="fas fa-book fa-4x text-muted"></i>
                         </div>
                     {% endif %}
 
                     <!-- Subject Details -->
-                    <div class="card-body d-flex flex-column justify-content-start">
-                        <h5 class="card-title text-center" style="color: #fb8c00;">{{ subject.name }}</h5>
-
-                        <p class="card-text mt-2" style="font-size: 0.9em; color: #666;">
-                            {% if subject.description|length > 60 %}
-                                {{ subject.description|truncate_html:60|safe }}..
-                                <a href="{% url 'subject-detail' subject.pk %}" class="text-primary fw-bold">Read More</a>
-                            {% else %}
-                                {{ subject.description }}
-                            {% endif %}
-                        </p>
+                   <div class="card-body d-flex flex-column justify-content-start">
+                        <h5 class="card-title text-center" style="color: #ff6f00; font-weight: bold; font-size: 1.2rem;">{{ subject.name }}</h5>
+                       <!--  <p class="card-text text-center" style="font-size: 0.9em; color: #555;">
+                            {{ subject.description|truncatewords:15|safe }} <a href="{% url 'subject-detail' subject.pk %}" class="text-primary fw-bold">Read More</a>
+                        </p>  -->
+                        <div class="d-flex justify-content-around mt-3">
+                            <a style="border: 2px solid #ffc107; font-size: 0.8rem; font-weight: bold; border-radius: 8px; color: white;" href="{% url 'subject-detail' subject.pk %}" class="btn btn-info btn-sm px-4 py-2">View Details</a>
+                            <a style="border: 2px solid #ffc107; font-size: 0.8rem; font-weight: bold; border-radius: 8px; color: white;" href="/create_quiz/?subject_id={{ subject.id }}" class="btn btn-warning btn-sm px-4 py-2">Take Quiz</a>
+                        </div>
                     </div>
 
                     <!-- Footer with authors -->
-                    <div class="card-footer text-center text-white" style="background: #ffa726; font-size: 0.8em;">
-                        <small><strong>Authors:</strong> {{ subject.authors|default:"Not specified" }}</small>
+                    <div class="card-footer text-center text-white" style="background: #ff6f00; font-size: 0.8em; border-bottom-left-radius: 15px; border-bottom-right-radius: 15px;">
+                        <strong>Authors:</strong> {{ subject.authors|default:"Not specified" }}
                     </div>
                 </div>
             </div>
         {% endfor %}
     </div>
 </div>
+
+<!-- Custom Styles -->
+<style>
+    .card:hover {
+        transform: scale(1.05);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-title {
+        font-size: 1.2rem;
+        color: #ff6f00;
+        font-weight: bold;
+    }
+
+    .btn-info {
+        background-color: #17a2b8;
+        border-color: #17a2b8;
+    }
+
+    .btn-info:hover {
+        background-color: #138496;
+        border-color: #117a8b;
+    }
+
+    .btn-warning {
+        background-color: #ff9800;
+        border-color: #ff9800;
+    }
+
+    .btn-warning:hover {
+        background-color: #e68900;
+        border-color: #e68900;
+    }
+
+    .card-footer {
+        background-color: #ff6f00;
+        color: white;
+        font-size: 0.8em;
+    }
+
+    .card-footer h8 {
+        font-size: 0.8em;
+    }
+
+    .text-muted {
+        color: #6c757d !important;
+    }
+
+    .fa-book {
+        color: #ff6f00;
+    }
+
+    .card-body {
+        padding: 1.5rem;
+    }
+</style>
+<script>
+</script>
+
 {% endblock content %}

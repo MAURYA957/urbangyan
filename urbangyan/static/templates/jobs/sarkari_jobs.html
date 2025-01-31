@@ -17,10 +17,8 @@
                 <div class="card-body">
                     <h5 class="card-title text-danger fw-bold">{{ job.exam_name }}</h5>
                     <p class="card-text text-muted">
-                        <span class="badge bg-success">{{ job.recruiter|default:"Unknown Recruiter" }}</span>
-                        {{ job.post_name|default:"Unknown Post"|safe }}
+                        <span class="badge bg-success">{{ job.recruiter|default:"Unknown Recruiter" }}</span> <a href="{% url 'job_detail' job.pk %}" class="badge bg-primary">View Details</a>
                     </p>
-                    <a href="{% url 'job_detail' job.pk %}" class="btn btn-warning">View Details</a>
                 </div>
             </div>
             {% endfor %}
@@ -52,7 +50,6 @@
                     <h5 class="card-title text-danger fw-bold">{{ job.exam_name }}</h5>
                     <p class="card-text text-muted">
                         <span class="badge bg-success">{{ job.recruiter|default:"Unknown Recruiter" }}</span>
-                        {{ job.post_name|default:"Unknown Post"|safe }}
                     </p>
                     <a href="{% url 'job_detail' job.pk %}" class="btn btn-info btn-block">View Details</a>
                 </div>

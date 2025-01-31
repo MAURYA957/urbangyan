@@ -1,9 +1,7 @@
 import uuid
-from datetime import timedelta, datetime
+from datetime import timedelta
 from random import random
-
 from django.conf import settings
-from django.contrib.auth.models import AbstractUser, Group, Permission
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.db import models
 from django.db.models import Sum, Max
@@ -11,54 +9,78 @@ from django.middleware.csrf import logger
 from django.template.defaulttags import now
 from django.urls import reverse
 from ckeditor_uploader.fields import RichTextUploadingField
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin, Group, Permission
 
 
-class User(AbstractUser):
-    username = models.CharField(max_length=100, unique=True)
-    first_name = models.CharField(max_length=100, blank=True)
-    middle_name = models.CharField(max_length=100, blank=True)
-    last_name = models.CharField(max_length=100)
+class CustomUserManager(BaseUserManager):
+    def create_user(self, email, phone, password=None, **extra_fields):
+        """ Create and return a regular user with email and phone. """
+        if not email:
+            raise ValueError("The Email field must be set")
+        if not phone:
+            raise ValueError("The Phone field must be set")
+
+        email = self.normalize_email(email)
+        user = self.model(email=email, phone=phone, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, email, phone, password=None, **extra_fields):
+        """ Create and return a superuser with all permissions. """
+        extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('is_staff', True)
+
+        return self.create_user(email, phone, password, **extra_fields)
+
+
+class User(AbstractBaseUser, PermissionsMixin):  # ✅ Use AbstractBaseUser instead of AbstractUser
+    full_name = models.CharField(max_length=100, blank=True)
     email = models.EmailField(unique=True)  # Ensure email is unique
-    phone = models.CharField(max_length=15, blank=True)  # Allow blank
-    state = models.CharField(max_length=100, default='De_data')
-    city = models.CharField(max_length=100, default='De_data')
-    password = models.CharField(max_length=128)  # Use max_length=128 for hashed passwords
-    user_type = models.CharField(max_length=50, default='De_data')  # Renamed to avoid conflict with built-in type
-    image = models.ImageField(upload_to='user', blank=True)  # Allow blank images
-    is_superuser = models.BooleanField(default=False)  # Inherited from AbstractUser
-    is_staff_user = models.BooleanField(default=False)
+    phone = models.CharField(max_length=15, unique=True, default='95600144331')
+    state = models.CharField(max_length=100, default='De_data', blank=True, null=True)
+    city = models.CharField(max_length=100, default='De_data', blank=True, null=True)
+    user_type = models.CharField(max_length=50, default='De_data')
+    image = models.ImageField(upload_to='user', blank=True)
+    is_superuser = models.BooleanField(default=False)
+    is_staff = models.BooleanField(default=False)  # Changed from is_staff_user
     is_visitor = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+
+    objects = CustomUserManager()  # ✅ Assign custom manager
+
+    USERNAME_FIELD = 'email'  # ✅ Use email as the unique identifier
+    REQUIRED_FIELDS = ['full_name', 'phone']  # Required fields when creating a superuser
+
     def save(self, *args, **kwargs):
-        # Ensure is_visitor is always True for new users
-        if not self.pk:  # Only set this for new instances
+        if not self.pk:
             self.is_visitor = True
         super().save(*args, **kwargs)
 
     groups = models.ManyToManyField(
         Group,
-        related_name='custom_user_set',  # Change related_name to avoid conflict
+        related_name='custom_user_set',
         blank=True,
     )
     user_permissions = models.ManyToManyField(
         Permission,
-        related_name='custom_user_permissions_set',  # Change related_name to avoid conflict
+        related_name='custom_user_permissions_set',
         blank=True,
     )
 
     class Meta:
-        unique_together = ('username',)
         permissions = [('can_view_user', 'Can view user')]
 
     def __str__(self):
-        return self.first_name
+        return self.email  # ✅ No username, return email instead
 
 
 class Blog(models.Model):
-    title = models.CharField(max_length=200)
-    content = RichTextUploadingField(max_length=2000)
+    title = models.CharField(max_length=2000)
+    content = RichTextUploadingField()
     image = models.ImageField(upload_to='blog', blank=True)
     author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='blogs')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -100,7 +122,6 @@ class Offer(models.Model):
 
 class Subject(models.Model):
     name = models.CharField(max_length=255)
-    description = RichTextUploadingField(blank=True, null=True)
     image = models.ImageField(upload_to='subjects/', blank=True, null=True)  # Optional image for Subject
     authors = models.TextField(blank=True, null=True,
                                help_text="Enter author names separated by commas")  # Store multiple author names
@@ -145,8 +166,6 @@ class Course(models.Model):
 class Unit(models.Model):
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='units')
     title = RichTextUploadingField(max_length=255)
-    description = RichTextUploadingField(blank=True, null=True)
-    table_of_contents = RichTextUploadingField(blank=True, null=True)  # New field for table of contents
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -169,32 +188,13 @@ class Topic(models.Model):
         return self.topic
 
 
-class Quiz(models.Model):
-    quiz = models.CharField(max_length=500)
-    description = RichTextUploadingField()
-    subject = models.ForeignKey(
-        Subject,
-        on_delete=models.SET_NULL,  # Set subject to NULL if it's deleted
-        related_name='quizzes',  # Adjusted for a plural-related name
-        blank=True,
-        null=True
-    )
-    No_of_Questions = models.IntegerField(default=10)
-    duration = models.DurationField(default=timedelta(minutes=30))  # Duration in minutes
-    created_at = models.DateTimeField(auto_now_add=True, blank=True, null=True)
-    updated_at = models.DateTimeField(auto_now=True, blank=True, null=True)
-
-    def __str__(self):
-        return self.quiz
-
-    def __str__(self):
-        return self.quiz
-
-
 class Questions(models.Model):
-    quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name='questions')
     Subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='questions')
     question_level = models.CharField(max_length=50, default='Beginner')  # Example default level
+    unit = RichTextUploadingField(max_length=1000, null=True,
+                                  blank=True, default='others')  # for answer explanation added on 21/10/2024
+    topic = RichTextUploadingField(max_length=1000, null=True,
+                                   blank=True, default='others')  # for answer explanation added on 21/10/2024
     question = RichTextUploadingField(max_length=500)
     option_1 = RichTextUploadingField(max_length=100)
     option_2 = RichTextUploadingField(max_length=100)
@@ -212,7 +212,7 @@ class Questions(models.Model):
 
 class QuizResult(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE)
+    quiz = models.CharField(default='Set_1')
     total_questions = models.IntegerField()
     attempted_questions = models.IntegerField()
     correct_answers = models.IntegerField()
@@ -223,7 +223,7 @@ class QuizResult(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.user.username} - {self.quiz.quiz} - {self.score}"
+        return f"{self.user.username} - {self.score}"
 
 
 class UserSession(models.Model):
@@ -232,16 +232,16 @@ class UserSession(models.Model):
     logged_in_at = models.DateTimeField(auto_now_add=True)
     logged_out_at = models.DateTimeField(null=True, blank=True)
     last_accessed = models.DateTimeField(auto_now=True)  # Remove default=None
-    username = models.CharField(max_length=150, blank=True)  # Set blank=True if you want it to be optional
+    full_name = models.CharField(max_length=150, blank=True)  # Set blank=True if you want it to be optional
 
     def save(self, *args, **kwargs):
         # Automatically set the username field from the user when saving
-        if not self.username:
-            self.username = self.user.username
+        if not self.full_name:
+            self.full_name = self.user.full_name
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"Session {self.session_key} for {self.username}"
+        return f"Session {self.session_key} for {self.full_name}"
 
 
 class MockTestSubjectConfig(models.Model):
@@ -256,7 +256,7 @@ class MockTestSubjectConfig(models.Model):
 
 class MockTest(models.Model):
     Exam_Name = models.CharField(max_length=100, default='test')
-    Instructions = RichTextUploadingField(max_length=1000, default='test')
+    Instructions = RichTextUploadingField(default='test')
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     duration = models.DurationField()
     total_questions = models.PositiveIntegerField(default=0)
@@ -377,7 +377,7 @@ class UserResponse(models.Model):
 class Badge(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     submission_id = models.UUIDField(default=uuid.uuid4, editable=False)  # Unique submission ID
-    score = models.FloatField(default=0.0) # Changed to IntegerField
+    score = models.FloatField(default=0.0)  # Changed to IntegerField
     attempted_question = models.IntegerField(default=0)  # Changed to IntegerField
     total_question = models.IntegerField(default=0)  # Changed to IntegerField
     Incorrect_question = models.IntegerField(default=0)  # Changed to IntegerField
@@ -443,29 +443,36 @@ class JobType(models.Model):
     def __str__(self):
         return self.name
 
+
 class JobCategory(models.Model):
     name = models.CharField(max_length=100, unique=True, help_text="Category of the job (e.g., Engineering, Medical).")
 
     def __str__(self):
         return self.name
 
+
 class JobStage(models.Model):
-    name = models.CharField(max_length=50, unique=True, help_text="Stage of the job process (e.g., Advertised, Result Declared).")
+    name = models.CharField(max_length=50, unique=True,
+                            help_text="Stage of the job process (e.g., Advertised, Result Declared).")
 
     def __str__(self):
         return self.name
 
-class ExperienceLevel(models.Model):
-    level = models.CharField(max_length=50, unique=True, help_text="Name of the experience level (e.g., Entry-level, Mid-level).")
-    created_at = models.DateTimeField(auto_now_add=True, help_text="The date and time when the experience level was created.")
-    updated_at = models.DateTimeField(auto_now=True, help_text="The date and time when the experience level was last updated.")
 
+class ExperienceLevel(models.Model):
+    level = models.CharField(max_length=50, unique=True,
+                             help_text="Name of the experience level (e.g., Entry-level, Mid-level).")
+    created_at = models.DateTimeField(auto_now_add=True,
+                                      help_text="The date and time when the experience level was created.")
+    updated_at = models.DateTimeField(auto_now=True,
+                                      help_text="The date and time when the experience level was last updated.")
 
 
 class Job(models.Model):
     job_type = models.ForeignKey(JobType, on_delete=models.PROTECT, help_text="Type of job (Sarkari or Private).")
     job_category = models.ForeignKey(JobCategory, on_delete=models.PROTECT, help_text="Category of the job.")
-    ExperienceLevel = models.ForeignKey(ExperienceLevel, on_delete=models.PROTECT, blank=True, null=True, help_text="ExperienceLevel required for the job.")
+    ExperienceLevel = models.ForeignKey(ExperienceLevel, on_delete=models.PROTECT, blank=True, null=True,
+                                        help_text="ExperienceLevel required for the job.")
     recruiter = models.CharField(max_length=100, help_text="Recruiter for the job.")
     advertised_no = models.CharField(max_length=100, help_text="Advertisement number.")
     exam_name = models.CharField(max_length=200, help_text="Name of the exam.")
@@ -497,7 +504,9 @@ class SavedJob(models.Model):
     def __str__(self):
         return f"SavedJob by {self.user.username} - {self.job_link}"
 
+
 from django.contrib.contenttypes.models import ContentType
+
 
 class Cart(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -512,7 +521,9 @@ class Cart(models.Model):
     def __str__(self):
         return f"{self.product} ({self.quantity})"
 
+
 from django.utils.timezone import now  # Correct import
+
 
 class Order(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -553,10 +564,9 @@ class Order(models.Model):
         return f"Order {self.id} - {self.user.username}"
 
 
-
-
 class AffairsCategory(models.Model):
-    name = models.CharField(max_length=100, unique=True, help_text="Name of the category (e.g., Politics, Sports, Important Dates)")
+    name = models.CharField(max_length=100, unique=True,
+                            help_text="Name of the category (e.g., Politics, Sports, Important Dates)")
     description = models.TextField(blank=True, null=True, help_text="Optional description for the category")
     created_at = models.DateTimeField(auto_now_add=True, help_text="Timestamp when the category was created")
     updated_at = models.DateTimeField(auto_now=True, help_text="Timestamp when the category was last updated")
@@ -594,8 +604,10 @@ class CurrentAffair(models.Model):
     def __str__(self):
         return f"{self.title} ({self.country})"
 
+
 class AdSenseConfig(models.Model):
-    publisher_id = models.CharField(max_length=50, help_text="Google AdSense Publisher ID (e.g., ca-pub-XXXXXXXXXXXXXXX)")
+    publisher_id = models.CharField(max_length=50,
+                                    help_text="Google AdSense Publisher ID (e.g., ca-pub-XXXXXXXXXXXXXXX)")
     ad_slot = models.CharField(max_length=50, help_text="Google AdSense Ad Slot ID")
     description = models.CharField(max_length=100, blank=True, help_text="Optional description for this ad slot")
 

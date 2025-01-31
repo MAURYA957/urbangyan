@@ -1,9 +1,9 @@
+from django.contrib.auth.hashers import check_password
 from django.contrib.contenttypes.models import ContentType
-from django.http import JsonResponse
 from django.db import IntegrityError
 from django.contrib import messages
 from django.urls import reverse
-from rest_framework.decorators import action
+from rest_framework.decorators import action, permission_classes
 from django.urls import reverse_lazy
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
@@ -11,29 +11,30 @@ from rest_framework import viewsets, generics
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-import re
-from drf_yasg.utils import swagger_auto_schema
-from drf_yasg import openapi
+from django.contrib.auth import logout as auth_logout
+from django.http import JsonResponse
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import Blog, User, QuizResult, UserSession, Comment, Offer, MockTestSubjectConfig, Quiz, Subject, SavedJob, \
+from .models import Blog, User, UserSession, Comment, Offer, MockTestSubjectConfig, Subject, SavedJob, \
     ExperienceLevel, Order, Cart, AffairsCategory, AdSenseConfig
-from django.contrib.auth import authenticate, login as auth_login
+from django.contrib.auth import  login as auth_login
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from .models import Topic, Course, Unit  # Ensure all necessary imports are present
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 import logging
-from .models import Questions, Badge, MockTest, UserResponse
+from .models import Questions, MockTest
 import uuid
+import pandas as pd
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.decorators import api_view, parser_classes
+from rest_framework.parsers import MultiPartParser, FormParser
 from .serializers import (
     BlogSerializer,
     CourseSerializer,
     TopicSerializer,
-    QuizSerializer,
     QuestionsSerializer,
     UserSerializer,
     CustomTokenObtainPairSerializer, UserSessionSerializer, SubjectSerializer, UnitSerializer, OfferSerializer,
@@ -96,40 +97,6 @@ class BlogViewSet(viewsets.ViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class QuizViewSet(viewsets.ViewSet):
-    permission_classes = [IsAuthenticated]
-
-    def list(self, request):
-        quizzes = Quiz.objects.all()
-        serializer = QuizSerializer(quizzes, many=True)
-        return Response(serializer.data)
-
-    def retrieve(self, request, pk=None):
-        quiz = get_object_or_404(Quiz, pk=pk)
-        serializer = QuizSerializer(quiz)
-        return Response(serializer.data)
-
-    def create(self, request):
-        serializer = QuizSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def update(self, request, pk=None):
-        quiz = get_object_or_404(Quiz, pk=pk)
-        serializer = QuizSerializer(quiz, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def destroy(self, request, pk=None):
-        quiz = get_object_or_404(Quiz, pk=pk)
-        quiz.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-
 class QuestionsViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
 
@@ -164,6 +131,9 @@ class QuestionsViewSet(viewsets.ViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+# =====================================
+# 1. USER VIEWSET (Django REST Framework)
+# =====================================
 class UserViewSet(viewsets.ViewSet):
     permission_classes = [AllowAny]  # Public API for login and user creation
 
@@ -184,7 +154,7 @@ class UserViewSet(viewsets.ViewSet):
     def create(self, request):
         logger.debug("Creating a new user with data: %s", request.data)
         data = request.data.copy()
-        data.setdefault('is_visitor', True)  # Default visitors unless specified
+        data.setdefault('is_visitor', True)  # Default to visitor
 
         serializer = UserSerializer(data=data)
         if serializer.is_valid():
@@ -243,26 +213,39 @@ class UserViewSet(viewsets.ViewSet):
         Custom login endpoint for authentication and token generation.
         """
         logger.debug("Attempting login with data: %s", request.data)
-        username = request.data.get('username')
+        identifier = request.data.get('identifier')  # Accepts email or phone
         password = request.data.get('password')
 
-        # Authenticate the user
-        user = authenticate(request, username=username, password=password)
-        if user is not None:
+        # Ensure identifier and password are provided
+        if not identifier or not password:
+            logger.error("Missing identifier or password")
+            return Response({"error": "Identifier and password are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check if the identifier is email or phone and find the user
+        user = None
+        if '@' in identifier:  # Assume it's an email if it contains '@'
+            user = User.objects.filter(email=identifier).first()
+        else:  # Otherwise, assume it's a phone number
+            user = User.objects.filter(phone=identifier).first()
+
+        # Authenticate user using password
+        if user and user.check_password(password):
+            logger.debug("User authenticated successfully.")
+
             if not user.is_active:
-                logger.warning(f"Inactive user attempted login: {username}")
+                logger.warning(f"Inactive user attempted login: {identifier}")
                 return Response({"error": "User account is inactive."}, status=status.HTTP_403_FORBIDDEN)
 
             # Generate JWT tokens
             refresh = RefreshToken.for_user(user)
             access_token = str(refresh.access_token)
-            logger.info(f"User {username} authenticated successfully.")
+            logger.info(f"User {identifier} authenticated successfully.")
 
             return Response({
                 'user': {
                     'id': user.id,
-                    'username': user.username,
                     'email': user.email,
+                    'phone': user.phone,
                     'is_superuser': user.is_superuser,
                     'is_staff_user': user.is_staff_user,
                     'is_visitor': user.is_visitor
@@ -270,120 +253,169 @@ class UserViewSet(viewsets.ViewSet):
                 'access': access_token,
                 'refresh': str(refresh)
             }, status=status.HTTP_200_OK)
+
+        # If authentication fails
+        logger.error(f"Failed login attempt for identifier: {identifier}")
+        return Response({"error": "Invalid credentials."}, status=status.HTTP_401_UNAUTHORIZED)
+
+
+# =====================================
+# 2. LOGIN FUNCTION (Django Authentication)
+# =====================================
+def login(request):
+    logger.debug("Entering the login function.")
+
+    if request.method == 'POST':
+        logger.debug("POST request received.")
+        identifier = request.POST.get('identifier')  # Accepts email or phone
+        password = request.POST.get('password')
+        logger.debug(f"Identifier: {identifier}, Password: {'*' * len(password)}")
+
+        # Check if the identifier is email or phone, and find the user
+        user = None
+        if '@' in identifier:  # Assume it's an email if it contains '@'
+            user = User.objects.filter(email=identifier).first()
+        else:  # Otherwise, assume it's a phone number
+            user = User.objects.filter(phone=identifier).first()
+
+        if user and user.check_password(password):
+            logger.debug("User authenticated successfully.")
+
+            if user.is_active:
+                logger.debug(f"User {identifier} is active.")
+
+                # Explicitly set the backend
+                user.backend = 'django.contrib.auth.backends.ModelBackend'
+
+                auth_login(request, user)  # Log in the user
+                logger.info(f"User {identifier} logged in successfully.")
+
+                # Save session
+                session_key = request.session.session_key or request.session.create()
+
+                # Log out previous sessions
+                active_sessions = UserSession.objects.filter(user=user)
+                for session in active_sessions:
+                    try:
+                        session.logged_out_at = now()
+                        session.save()
+                    except Exception as e:
+                        logger.error(f"Error logging out session {session.session_key}: {e}")
+
+                # Create a new session
+                UserSession.objects.create(user=user, session_key=session_key)
+
+                return redirect('dashboard')
+
+            else:
+                logger.warning(f"User {identifier} has an inactive account.")
+                messages.error(request, 'Your account is inactive.')
+
         else:
-            logger.error(f"Failed login attempt for username: {username}")
-            return Response({"error": "Invalid username or password."}, status=status.HTTP_401_UNAUTHORIZED)
+            logger.warning(f"Authentication failed for user {identifier}.")
+            messages.error(request, 'Invalid email/phone or password.')
+
+    return render(request, 'user/login.html')
 
 
-class UsernameAvailabilityView(APIView):
-    permission_classes = [AllowAny]  # Allows unauthenticated users
+# =====================================
+# 3. LOGIN API VIEW (Django REST Framework)
+# =====================================
 
-    @swagger_auto_schema(
-        manual_parameters=[
-            openapi.Parameter(
-                'username',  # name of the parameter
-                openapi.IN_QUERY,  # where the parameter is
-                description="The username to check for availability.",
-                type=openapi.TYPE_STRING,  # type of the parameter
-                required=True,  # if the parameter is required
-            )
-        ],
-        responses={
-            200: openapi.Response('Success', openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    'available': openapi.Schema(type=openapi.TYPE_BOOLEAN)
-                }
-            )),
-            400: openapi.Response('Bad Request', openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    'detail': openapi.Schema(type=openapi.TYPE_STRING)
-                }
-            ))
-        }
-    )
-    def get(self, request):
-        logger.info(f"Incoming request: {request.GET}")
-        username = request.GET.get('username', None)
+class LoginAPIView(APIView):
+    permission_classes = [AllowAny]
 
-        # Validate username format (example: alphanumeric, 3-30 characters)
-        if username:
-            if not re.match(r'^[a-zA-Z0-9]{3,30}$', username):
-                return Response({'detail': 'Username must be alphanumeric and between 3 to 30 characters long.'},
-                                status=status.HTTP_400_BAD_REQUEST)
+    def post(self, request):
+        identifier = request.data.get('identifier', '').strip().lower()  # Normalize input (email or phone)
+        password = request.data.get('password')
 
-            available = not User.objects.filter(username=username).exists()
-            return Response({'available': available})
+        logger.info(f"Login attempt for: {identifier}")
 
-        return Response({'detail': 'Username parameter is required.'},
-                        status=status.HTTP_400_BAD_REQUEST)
+        # Validate input
+        if not identifier or not password:
+            logger.error("Missing identifier or password")
+            return Response({"error": "Identifier and password are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check if identifier is email or phone
+        user = None
+        if '@' in identifier:  # Email validation
+            user = User.objects.filter(email=identifier).first()
+        else:  # Phone validation
+            user = User.objects.filter(phone=identifier).first()
+
+        # If the user is found and the password is correct
+        if user and check_password(password, user.password):
+            if not user.is_active:
+                logger.warning(f"Inactive user attempted login: {identifier}")
+                return Response({"error": "User account is inactive."}, status=status.HTTP_403_FORBIDDEN)
+
+            # Generate JWT tokens
+            refresh = RefreshToken.for_user(user)
+            logger.info(f"User {user.id} ({identifier}) authenticated successfully")
+
+            return Response({
+                'access': str(refresh.access_token),
+                'refresh': str(refresh),
+                'email': user.email,
+                'phone': user.phone,
+                'user_type': user.user_type,
+            }, status=status.HTTP_200_OK)
+
+        # If authentication fails
+        logger.error(f"Invalid login attempt for identifier: {identifier}")
+        return Response({"error": "Invalid credentials."}, status=status.HTTP_401_UNAUTHORIZED)
 
 
 def register_user(request):
     if request.method == 'POST':
+        full_name = request.POST.get('full_name', '').strip()
+        email = request.POST.get('email', '').strip().lower()
+        phone = request.POST.get('phone', '').strip()
+        state = request.POST.get('state', '').strip()
+        city = request.POST.get('city', '').strip()
+        password = request.POST.get('password', '')
+
+        # Validate required fields
+        if not all([full_name, email, phone, password]):
+            messages.error(request, "All fields are required.")
+            return redirect('create-user')
+
+        # Validate email and phone format (basic validation)
+        if "@" not in email or "." not in email:
+            messages.error(request, "Invalid email format.")
+            return redirect('create-user')
+        if not phone.isdigit() or len(phone) < 10:
+            messages.error(request, "Invalid phone number.")
+            return redirect('create-user')
+
+        image = request.FILES.get('image')
+
         try:
-            # Get data from the POST request
-            username = request.POST.get('username')
-            first_name = request.POST.get('first_name')
-            middle_name = request.POST.get('middle_name')
-            last_name = request.POST.get('last_name')
-            email = request.POST.get('email')
-            phone = request.POST.get('phone')
-            state = request.POST.get('state')
-            city = request.POST.get('city')
-            password = request.POST.get('password')
+            # Create user instance
+            user = User.objects.create_user(
+                full_name=full_name,
+                email=email,
+                phone=phone,
+                state=state,
+                city=city,
+                password=password,  # Django's `create_user` hashes password
+                image=image,
+                is_active=True
+            )
 
-            # Validate required fields
+            messages.success(request, "User created successfully!")
+            return redirect('login')
 
-            # Get image from the file upload
-            image = request.FILES.get('image')  # Handle image files from the form
-
-            # Ensure password confirmation matches if applicable
-            # If you have a confirmation password field, ensure it's the same as the original password
-
-            # Hash the password before saving
-
-            try:
-                # Create a new user instance
-                user = User.objects.create_user(
-                    username=username,
-                    first_name=first_name,
-                    middle_name=middle_name,
-                    last_name=last_name,
-                    email=email,
-                    phone=phone,
-                    state=state,
-                    city=city,
-                    password=password,
-                    image=image,
-                    is_active=True,  # Ensure the user is active by default
-
-                )
-
-                # Log success
-                logger.info(f"User created successfully: {user.username}")
-                messages.success(request, "User created successfully!")
-
-                return redirect('login')  # Redirect to login page after successful registration
-
-            except IntegrityError:
-                # Handle the case where the username already exists
-                logger.error(f"Username '{username}' already exists.")
-                messages.error(request, "The username is already taken. Please choose a different username.")
-                return redirect('create-user')
+        except IntegrityError:
+            messages.error(request, "Email or Phone number is already registered. Please login.")
+            return redirect('create-user')
 
         except Exception as e:
-            # Log general errors
-            logger.error(f"Error creating user: {str(e)}")
             messages.error(request, "An error occurred while creating the user.")
-
-            # Return an error response in case of failure
             return JsonResponse({"error": str(e)}, status=400)
 
-    else:
-        # Render the user registration page if it's a GET request
-        return render(request, 'user/create_user.html')
+    return render(request, 'user/create_user.html')
+
 
 @login_required
 def update_user_view(request, pk):
@@ -398,9 +430,7 @@ def update_user_view(request, pk):
     # Handle POST request
     if request.method == 'POST':
         # Get form data
-        first_name = request.POST.get('first_name')
-        middle_name = request.POST.get('middle_name')
-        last_name = request.POST.get('last_name')
+        full_name = request.POST.get('full_name')
         email = request.POST.get('email')
         phone = request.POST.get('phone')
         state = request.POST.get('state')
@@ -409,9 +439,7 @@ def update_user_view(request, pk):
         image = request.FILES.get('image')
 
         # Update user details
-        user.first_name = first_name
-        user.middle_name = middle_name
-        user.last_name = last_name
+        user.full_name = full_name
         user.email = email
         user.phone = phone
         user.state = state
@@ -436,6 +464,7 @@ def update_user_view(request, pk):
     # Render the update user form
     return render(request, 'user/update_user.html', {'user': user})
 
+
 @login_required
 def delete_user_view(request, pk):
     """
@@ -454,7 +483,6 @@ def delete_user_view(request, pk):
         return redirect(reverse('dashboard'))  # Redirect to the home page after deletion.
 
     return render(request, 'user/delete_user.html', {'user': user})
-
 
 
 class UserSessionListCreateAPIView(generics.ListCreateAPIView):
@@ -480,123 +508,6 @@ class UserSessionDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
         """Override the destroy method for additional logging or cleanup if necessary."""
         # You can log the deletion or perform other cleanup actions here
         instance.delete()
-
-
-def list_quizzes_view(request):
-    quizs = Quiz.objects.all()
-    return render(request, 'quiz/quiz_list.html', {'quizs': quizs})
-
-
-def user_quizzes_view(request):
-    """
-    Renders the quiz view page with all subjects.
-    """
-    subjects = Subject.objects.all()  # Fetch all subjects
-    return render(request, 'quiz/quiz_view.html', {'subjects': subjects})
-
-
-def quizzes_by_subject(request, subject_id):
-    """
-    Returns quizzes filtered by subject ID as JSON response.
-    """
-    try:
-        subject = get_object_or_404(Subject, id=subject_id)
-
-        # Filter quizzes by the subject
-        quizzes = Quiz.objects.filter(subject=subject)
-
-        # Construct the data to send as JSON
-        quiz_data = [{
-            'id': quiz.id,
-            'subject': quiz.subject.name if quiz.subject else "Unknown",
-            'quiz': quiz.quiz,
-            'description': quiz.description or "No description provided",
-            'no_of_questions': quiz.No_of_Questions or 0,
-            'duration': str(quiz.duration) if quiz.duration else "Not specified",
-        } for quiz in quizzes]
-
-        return JsonResponse({'quizzes': quiz_data})
-    except Exception as e:
-        print(f"Error fetching quizzes: {e}")
-        return JsonResponse({'error': 'Failed to fetch quizzes.'}, status=500)
-
-
-
-@login_required
-def create_quiz_view(request):
-    subjects = Subject.objects.all()
-
-    if request.method == 'POST':
-        quizname = request.POST.get('quizname')
-        duration = request.POST.get('duration')
-        No_of_Questions = request.POST.get('No_of_Questions')
-        description = request.POST.get('description')
-        subject_id = request.POST.get('subject') # ForeignKey field
-        subject = get_object_or_404(Subject, pk=subject_id)
-
-        # Create the quiz object
-        Quiz.objects.create(
-            quiz=quizname,
-            duration=duration,
-            No_of_Questions=No_of_Questions,
-            description=description,
-            subject=subject,
-        )
-
-        # Add success message
-        messages.success(request, 'quiz created successfully!')
-
-        # Redirect after successful creation
-        return redirect(reverse('quiz-list-template'))
-
-    return render(request, 'quiz/create_quiz.html', {'subjects': subjects})
-
-
-@login_required
-def update_quiz_view(request, pk):
-    # Fetch the quiz to update
-    quiz = get_object_or_404(Quiz, pk=pk)
-
-    # Get all subjects for the dropdown
-    subjects = Subject.objects.all()
-
-    # Handle POST request
-    if request.method == 'POST':
-        # Get form data
-        quizname = request.POST.get('quizname')
-        description = request.POST.get('description')
-        subject_id = request.POST.get('subject')  # Subject field from the form
-        subject = get_object_or_404(Subject, pk=subject_id)  # Fetch the subject by ID
-
-        # Update the quiz object with the form data
-        quiz.quiz = quizname
-        quiz.description = description
-        quiz.subject = subject
-
-        # Save the updated quiz
-        quiz.save()
-
-        # Success message
-        messages.success(request, 'Quiz updated successfully!')
-
-        # Redirect after successful update
-        return redirect(reverse('quiz-list-template'))  # Adjust 'quiz-list-template' to your actual URL name
-
-    # Render the update quiz form with the quiz and subjects context
-    return render(request, 'quiz/update_quiz.html', {'quiz': quiz, 'subjects': subjects})
-
-
-@login_required
-def delete_quiz_view(request, pk):
-    quiz = get_object_or_404(Quiz, pk=pk)
-
-    if request.method == 'POST':
-        # Confirm deletion of the quiz
-        quiz.delete()
-        messages.success(request, 'Quiz deleted successfully!')
-        return redirect('quiz-list-template')  # Adjust URL name as needed
-
-    return render(request, 'quiz/delete_quiz.html', {'quiz': quiz})
 
 
 class CourseViewSet(viewsets.ModelViewSet):
@@ -668,7 +579,7 @@ def create_course_view(request):
     try:
         if request.method == 'POST':
             # Step 1: Log the start of the course creation
-            logger.info("Course creation started by user: %s", request.user.username)
+            logger.info("Course creation started by user: %s", request.user.full_name)
 
             # Step 2: Retrieve form data
             title = request.POST.get('title')
@@ -685,7 +596,7 @@ def create_course_view(request):
                 description=description,
                 image=image,
                 price=price,
-                Staff=request.user.username  # Assign the current user as staff
+                Staff=request.user.full_name  # Assign the current user as staff
             )
             logger.info("Course created: %s", course.title)
 
@@ -725,14 +636,14 @@ def update_course_view(request, pk):
         course = get_object_or_404(Course, pk=pk)
 
         # Step 1: Check permissions
-        if request.user.username != course.Staff and not request.user.is_staff:
+        if request.user.full_name != course.Staff and not request.user.is_staff:
             messages.error(request, 'You do not have permission to update this course.')
-            logger.warning("User %s attempted to update course without permission.", request.user.username)
+            logger.warning("User %s attempted to update course without permission.", request.user.full_name)
             return redirect(reverse('course-list-template'))
 
         # Step 2: Handle POST request (updating course)
         if request.method == 'POST':
-            logger.info("User %s updating course: %s", request.user.username, course.title)
+            logger.info("User %s updating course: %s", request.user.full_name, course.title)
 
             # Update course fields
             course.title = request.POST.get('title')
@@ -767,14 +678,14 @@ def delete_course_view(request, pk):
         course = get_object_or_404(Course, pk=pk)
 
         # Step 1: Check permissions
-        if request.user.username != course.Staff and not request.user.is_staff:
+        if request.user.full_name != course.Staff and not request.user.is_staff:
             messages.error(request, 'You do not have permission to delete this course.')
-            logger.warning("User %s attempted to delete course without permission.", request.user.username)
+            logger.warning("User %s attempted to delete course without permission.", request.user.full_name)
             return redirect(reverse('course-list-template'))
 
         # Step 2: Handle POST request (deleting course)
         if request.method == 'POST':
-            logger.info("User %s deleting course: %s", request.user.username, course.title)
+            logger.info("User %s deleting course: %s", request.user.full_name, course.title)
             course.delete()
             logger.info("Course deleted: %s", course.title)
             messages.success(request, 'Course deleted successfully!')
@@ -884,19 +795,57 @@ def list_units_view(request):
 @login_required
 def list_questions_view(request):
     questions = Questions.objects.all()
-    return render(request, 'question/questions_list.html', {'questions': questions})
+    subjects = Questions.objects.values_list('Subject__name', flat=True).distinct()
+    units = Questions.objects.values_list('unit', flat=True).distinct()
+    topics = Questions.objects.values_list('topic', flat=True).distinct()
+
+    context = {
+        'questions': questions,
+        'subjects': subjects,
+        'units': units,
+        'topics': topics,
+    }
+    return render(request, 'question/questions_list.html', context)
+
+
+def filter_units(request):
+    subject_id = request.GET.get('subject_id')
+    logger.info(f"Received subject_id: {subject_id}")
+    if subject_id:
+        units = Unit.objects.filter(subject_id=subject_id).values('id', 'title')
+        logger.info(f"Units found: {list(units)}")
+        return JsonResponse({'units': list(units)})
+    logger.warning("No subject_id provided or no units found")
+    return JsonResponse({'units': []})
+
+
+def filter_topics(request):
+    unit_id = request.GET.get('unit_id')
+    logger.info(f"Received unit_id: {unit_id}")
+    if unit_id:
+        topics = Topic.objects.filter(unit_id=unit_id).values('id', 'topic')
+        logger.info(f"Topics found: {list(topics)}")
+        return JsonResponse({'topics': list(topics)})
+    logger.warning("No unit_id provided or no topics found")
+    return JsonResponse({'topics': []})
+
 
 @login_required
 def create_question_view(request):
     if request.method == 'POST':
         try:
-            quiz_id = request.POST.get('quiz')  # Get the selected quiz ID from the POST request
-            subject_id = request.POST.get('subject')  # Get the selected subject ID from the POST request
-            question_level = request.POST.get('question_level')  # Get the selected question level from the POST request
+            # Get data from the POST request_
+            subject_id = request.POST.get('subject')  # Subject ID
+            unit_id = request.POST.get('unit')  # Unit ID
+            topic_id = request.POST.get('topic')  # Topic ID
+            question_level = request.POST.get('question_level')  # Question level
 
-            quiz = get_object_or_404(Quiz, pk=quiz_id)  # Get the selected quiz instance
-            subject = get_object_or_404(Subject, pk=subject_id)  # Get the selected Subject instance
+            # Fetch related objects
+            subject = get_object_or_404(Subject, pk=subject_id)
+            unit = get_object_or_404(Unit, pk=unit_id)
+            topic = get_object_or_404(Topic, pk=topic_id)
 
+            # Fetch question details
             question = request.POST.get('question')
             option_1 = request.POST.get('option_1')
             option_2 = request.POST.get('option_2')
@@ -907,8 +856,9 @@ def create_question_view(request):
 
             # Create the question
             Questions.objects.create(
-                quiz=quiz,
                 Subject=subject,
+                unit=unit,
+                topic=topic,
                 question_level=question_level,
                 question=question,
                 option_1=option_1,
@@ -919,7 +869,7 @@ def create_question_view(request):
                 explanation=explanation,
             )
 
-            # Log success
+            # Log success and notify user
             logger.info("Question created successfully: %s", question)
             messages.success(request, "Question created successfully!")
 
@@ -929,12 +879,10 @@ def create_question_view(request):
             logger.error("Error creating question: %s", str(e))
             messages.error(request, "An error occurred while creating the question.")
 
-    # Fetch all quizzes, quiz names, and subjects for the dropdowns
-    quizzes = Quiz.objects.all()
+    # Fetch data for dropdowns
     subjects = Subject.objects.all()
 
     return render(request, 'question/create_question.html', {
-        'quizzes': quizzes,
         'subjects': subjects,
     })
 
@@ -1024,13 +972,13 @@ def create_topic_view(request):
                 )
 
             # Log and notify success
-            logger.info(f"Topic '{topic_name}' created successfully by {request.user.username}.")
+            logger.info(f"Topic '{topic_name}' created successfully by {request.user.full_name}.")
             messages.success(request, "Topic created successfully.")
             return redirect(reverse('topic-list-template'))  # Redirect to topic list
 
         except Exception as e:
             # Log error details
-            logger.error(f"Error creating topic '{topic_name}' by {request.user.username}: {e}")
+            logger.error(f"Error creating topic '{topic_name}' by {request.user.full_name}: {e}")
             messages.error(request, "An error occurred while creating the topic. Please try again.")
 
     # Handle GET request: Pass available courses, subjects, and units to the form
@@ -1133,8 +1081,6 @@ def delete_topic_view(request, pk):
 def create_unit_view(request):
     if request.method == 'POST':
         title = request.POST.get('title')
-        description = request.POST.get('description')
-        table_of_contents = request.FILES.get('image')
         subject_id = request.POST.get('subject')
 
         # Fetch the subject based on the ID
@@ -1144,8 +1090,6 @@ def create_unit_view(request):
             # Create the Unit object
             Unit.objects.create(
                 title=title,
-                description=description,
-                table_of_contents=table_of_contents,
                 subject=subject,  # Set the subject from the dropdown
             )
             return redirect(reverse('unit-list-template'))
@@ -1175,8 +1119,6 @@ def update_unit_view(request, pk):
             unit.subject = get_object_or_404(Subject, id=subject_id)  # Update subject based on the ID
 
         unit.title = request.POST.get('title')
-        unit.description = request.POST.get('description')
-        unit.table_of_contents = request.POST.get('table_of_contents')  # Update table of contents if included
 
         # If an image is uploaded, replace the old one with the new one
 
@@ -1212,21 +1154,19 @@ def create_subject_view(request):
     if request.method == 'POST':
         # Retrieve form data
         name = request.POST.get('name')
-        description = request.POST.get('description')
         image = request.FILES.get('image')
         authors = request.POST.get('authors')  # Expecting comma-separated author names
 
         # Validate required fields
-        if not name or not description:
+        if not name:
             return render(request, 'subject/create_subject.html', {
-                'error': 'Name and description are required fields.',
+                'error': 'Name are required fields.',
                 'form_data': request.POST,  # Pass form data back to prefill
             })
 
         # Create the Subject instance
         Subject.objects.create(
             name=name,
-            description=description,
             image=image,
             authors=authors  # Store comma-separated authors
         )
@@ -1250,17 +1190,15 @@ def update_subject_view(request, pk):
 
     if request.method == 'POST':
         name = request.POST.get('name')
-        description = request.POST.get('description')
         image = request.FILES.get('image')
 
         # Validate required fields
-        if not name or not description:
-            messages.error(request, 'Name and description are required.')
+        if not name:
+            messages.error(request, 'Name are required.')
             return render(request, 'subject/update_subject.html', {'subject': subject})
 
         # Update the subject details
         subject.name = name
-        subject.description = description
         if image:  # Only update image if a new one is provided
             subject.image = image
         subject.save()
@@ -1398,79 +1336,6 @@ def comment_blog(request, blog_id):
     return redirect(reverse('blog-detail-template', args=[blog_id]))
 
 
-logger = logging.getLogger(__name__)
-
-
-class LoginAPIView(APIView):
-    permission_classes = [AllowAny]
-
-    def post(self, request):
-        username = request.data.get('username')
-        password = request.data.get('password')
-
-        logger.debug(f"Attempting login for user: {username}")
-
-        user = authenticate(username=username, password=password)
-        if user is None:
-            logger.warning(f"Invalid credentials for user: {username}")
-            return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
-
-        # Ensure user is active
-        if not user.is_active:
-            logger.warning(f"User {username} is inactive.")
-            return Response({'error': 'User is inactive'}, status=status.HTTP_401_UNAUTHORIZED)
-
-        # Generate tokens
-        refresh = RefreshToken.for_user(user)
-        return Response({
-            'access': str(refresh.access_token),
-            'refresh': str(refresh),
-            'username': user.username,
-            'user_type': user.user_type,
-        }, status=status.HTTP_200_OK)
-
-
-def login(request):
-    logger.debug("Entering the login function.")
-
-    if request.method == 'POST':
-        logger.debug("POST request received.")
-
-        username = request.POST.get('username')
-        password = request.POST.get('password')
-        logger.debug(f"Username: {username}, Password: {'*' * len(password)}")
-
-        user = authenticate(request, username=username, password=password)
-        if user is not None:
-            logger.debug("User authenticated successfully.")
-
-            if user.is_active:
-                logger.debug(f"User {username} is active.")
-                auth_login(request, user)
-                logger.info(f"User {username} logged in successfully.")
-
-                # Save the session
-                session_key = request.session.session_key
-                UserSession.objects.create(user=user, session_key=session_key)
-
-                logger.debug("Redirecting to the appropriate dashboard based on user type.")
-                return redirect('dashboard')
-            else:
-                logger.warning(f"User {username} has an inactive account.")
-                messages.error(request, 'Your account is inactive.')
-        else:
-            logger.warning(f"Authentication failed for user {username}. Invalid username or password.")
-            messages.error(request, 'Invalid username or password.')
-
-    logger.debug("Rendering the login page.")
-    return render(request, 'user/login.html')
-
-
-from django.contrib.auth import logout as auth_logout
-
-
-from django.utils.timezone import now
-
 def logout(request):
     logger.debug("Entering the logout function.")
 
@@ -1488,9 +1353,9 @@ def logout(request):
         if user_session:
             user_session.logged_out_at = now()
             user_session.save()
-            logger.info(f"Updated logout time for session {session_key} of user {user.username}.")
+            logger.info(f"Updated logout time for session {session_key} of user {user.full_name}.")
         else:
-            logger.warning(f"No session found for user {user.username} with session key {session_key}.")
+            logger.warning(f"No session found for user {user.full_name} with session key {session_key}.")
     except Exception as e:
         logger.error(f"Error updating logout time for session {session_key}: {str(e)}")
 
@@ -1498,89 +1363,140 @@ def logout(request):
     logger.debug("Redirecting to the open page after logout.")
     return redirect('dashboard')
 
+
 def dashboard_view(request):
     return render(request, 'dashboard.html')  # Replace with your actual template
 
 
+def quiz(request):
+    subject_id = request.GET.get('subject_id')
+    unit_id = request.GET.get('unit_id')
+    topic_id = request.GET.get('topic_id')
 
-def questions_view(request, quiz_id):
-    # Get the quiz object or return 404 if not found
-    quiz = get_object_or_404(Quiz, id=quiz_id)
+    if bool(subject_id) + bool(unit_id) + bool(topic_id) != 1:
+        return JsonResponse(
+            {"error": "Please provide exactly one of subject_id, unit_id, or topic_id."},
+            status=400
+        )
 
-    # Fetch the number of questions to display
-    no_of_questions = quiz.No_of_Questions  # Assuming you use snake_case for field names
+    if subject_id:
+        obj = get_object_or_404(Subject, id=subject_id)
+        questions = list(Questions.objects.filter(Subject=obj).order_by('?'))
+    elif unit_id:
+        obj = get_object_or_404(Unit, id=unit_id)
+        questions = list(Questions.objects.filter(unit=obj).order_by('?'))
+    elif topic_id:
+        obj = get_object_or_404(Topic, id=topic_id)
+        questions = list(Questions.objects.filter(topic=obj).order_by('?'))
 
-    # Fetch random questions from the quiz
-    questions = Questions.objects.filter(quiz=quiz).order_by('?')[:no_of_questions]
-
-    # Get the quiz duration (in case you want to display it or use it for a timer)
-    quiz_duration = quiz.duration
-
-    # Handle form submission (POST request)
-    if request.method == 'POST':
-        return questions_submit(request, quiz_id)
-
-    # Check if there are no questions available
-    no_questions_message = None
     if not questions:
-        no_questions_message = "No questions available for this quiz."
+        # Check if the user has provided a valid subject, unit, or topic
+        if subject_id:
+            error_message = "Oops! No questions are available for the selected subject."
+            logger.warning(f"No questions found for subject ID: {subject_id}")
+        elif unit_id:
+            error_message = "Oops! No questions are available for the selected unit."
+            logger.warning(f"No questions found for unit ID: {unit_id}")
+        elif topic_id:
+            error_message = "Oops! No questions are available for the selected topic."
+            logger.warning(f"No questions found for topic ID: {topic_id}")
+        else:
+            error_message = "Oops! No questions found for the selected filter."
+            logger.warning("No questions found for the selected filter (no subject, unit, or topic provided).")
 
-    # Render the template and pass the quiz and questions context
-    return render(request, 'question/questions_view.html', {
-        'quiz': quiz,
-        'questions': questions,
-        'quiz_duration': quiz_duration,
-        'no_questions_message': no_questions_message,  # Pass the message to the template
-    })
-
-def questions_submit(request, quiz_id):
-    quiz = get_object_or_404(Quiz, id=quiz_id)
-    questions = Questions.objects.filter(quiz=quiz)
+        return render(request, 'quiz/subjecterror.html', {'error_message': error_message})
 
     total_questions = len(questions)
-    correct_answers = 0
-    wrong_answers = 0
-    attempted_questions = 0
+    num_sets = (total_questions // 20) + (1 if total_questions % 20 != 0 else 0)
 
-    for question in questions:
-        selected_option = request.POST.get(f'question_{question.id}')
-
-        if selected_option and selected_option.isdigit():
-            attempted_questions += 1
-            if int(selected_option) == question.answer:
-                correct_answers += 1
-            else:
-                wrong_answers += 1
-
-    score = correct_answers
-
-    try:
-        QuizResult.objects.create(
-            user=request.user,
-            quiz=quiz,
-            total_questions=total_questions,
-            attempted_questions=attempted_questions,
-            correct_answers=correct_answers,
-            wrong_answers=wrong_answers,
-            score=score
+    question_sets = [
+        {"set_number": i + 1, "questions": questions[start_index:end_index]}
+        for i, (start_index, end_index) in enumerate(
+            [(i * 20, min((i + 1) * 20, total_questions)) for i in range(num_sets)]
         )
-        logger.info(f"Quiz result saved for user {request.user.id}")
-    except Exception as e:
-        logger.error(f"Error saving quiz result: {e}")
+    ]
 
-    result_summary = {
-        'total_questions': total_questions,
-        'attempted_questions': attempted_questions,
-        'correct_answers': correct_answers,
-        'wrong_answers': wrong_answers,
-        'score': score,
+    for question_set in question_sets:
+        total_seconds = len(question_set['questions']) * 15  # 15 seconds per question
+        minutes = total_seconds // 60
+        seconds = total_seconds % 60
+        question_set['set_duration'] = f"{minutes} Min {seconds} Sec"
+
+    context = {
+        'question_sets': question_sets,
     }
 
-    return render(request, 'question/questions_result.html', {
-        'quiz': quiz,
-        'result_summary': result_summary,
-    })
+    return render(request, 'quiz/quiz.html', context)
 
+
+def submit_quiz(request):
+    if request.method == "POST":
+        user = request.user
+        submitted_data = request.POST  # Dictionary of submitted answers
+        quiz_set = submitted_data.get("quiz_set", "Set_1")  # Default to Set_1 if not provided
+        total_questions = 0
+        attempted_questions = 0
+        correct_answers = 0
+        wrong_answers = 0
+        question_results = []
+
+        for key, value in submitted_data.items():
+            if key.startswith("question_"):  # Identify submitted answers
+                question_id = key.split("_")[1]
+                question = get_object_or_404(Questions, id=question_id)
+                selected_answer = int(value) if value.isdigit() else None
+                correct_answer = question.answer
+
+                total_questions += 1
+                if selected_answer:
+                    attempted_questions += 1
+                    if selected_answer == correct_answer:
+                        correct_answers += 1
+                        status = "Correct"
+                    else:
+                        wrong_answers += 1
+                        status = "Incorrect"
+                else:
+                    status = "Unattempted"
+
+                question_results.append({
+                    "question": question.question,
+                    "selected_answer": selected_answer if selected_answer else "Not Answered",
+                    "correct_answer": correct_answer,
+                    "attempted": "Yes" if selected_answer else "No",
+                    "status": status
+                })
+
+        # Calculate percentage score
+        score = (correct_answers / total_questions) * 100 if total_questions else 0
+
+        # Save the result
+        if request.user.is_authenticated:
+            QuizResult.objects.create(
+                user=user,
+                quiz=quiz_set,
+                total_questions=total_questions,
+                attempted_questions=attempted_questions,
+                correct_answers=correct_answers,
+                wrong_answers=wrong_answers,
+                score=score
+            )
+        else:
+            pass
+
+        context = {
+            "total_questions": total_questions,
+            "attempted_questions": attempted_questions,
+            "correct_answers": correct_answers,
+            "wrong_answers": wrong_answers,
+            "unattempted_questions": total_questions - attempted_questions,
+            "score": score,
+            "question_results": question_results
+        }
+
+        return render(request, "quiz/result.html", context)
+
+    return JsonResponse({"error": "Invalid request method"}, status=400)
 
 
 # Create Offer API View
@@ -1775,6 +1691,7 @@ class MockTestDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
 
 from django.core.paginator import Paginator
 
+
 def MockTest_user(request):
     # Retrieve all MockTest instances
     mocktests = MockTest.objects.all()
@@ -1798,7 +1715,13 @@ def MockTest_user(request):
 @login_required()
 def instructions_view(request, mocktest_id):
     mocktest = get_object_or_404(MockTest, id=mocktest_id)
-    return render(request, 'mocktest/instructions.html', {'mocktest': mocktest, 'duration': mocktest.duration})
+    context = {
+        'mocktest': mocktest,  # MockTest object, which might include details like Exam Name, Instructions, etc.
+        'duration': mocktest.duration,  # Duration of the mock test
+
+    }
+    return render(request, 'mocktest/instructions.html', context)
+
 
 @login_required()
 def mocktest_detailview(request, mocktest_id):
@@ -2034,12 +1957,14 @@ def subject_detail(request, pk):
     }
     return render(request, 'subject/subject_detail.html', context)
 
+
 # Fetch current affairs
 import os
 import requests
 from dotenv import load_dotenv
 
 load_dotenv()
+
 
 def fetch_current_affairs():
     API_KEY = os.getenv('NEWS_API_KEY_FOR_CURRENTS')
@@ -2062,7 +1987,6 @@ def CurrentAffaires(request):
     return render(request, 'news.html', {'current_affairs': current_affairs})
 
 
-
 from rest_framework import viewsets
 from .models import Advertisement, Job, JobType, JobCategory, JobStage
 from .serializers import (
@@ -2073,21 +1997,26 @@ from .serializers import (
     JobStageSerializer,
 )
 
+
 class AdvertisementViewSet(viewsets.ModelViewSet):
     queryset = Advertisement.objects.all()
     serializer_class = AdvertisementSerializer
+
 
 class JobTypeViewSet(viewsets.ModelViewSet):
     queryset = JobType.objects.all()
     serializer_class = JobTypeSerializer
 
+
 class JobCategoryViewSet(viewsets.ModelViewSet):
     queryset = JobCategory.objects.all()
     serializer_class = JobCategorySerializer
 
+
 class JobStageViewSet(viewsets.ModelViewSet):
     queryset = JobStage.objects.all()
     serializer_class = JobStageSerializer
+
 
 class JobViewSet(viewsets.ModelViewSet):
     queryset = Job.objects.all()
@@ -2115,10 +2044,10 @@ class SavedJobViewSet(viewsets.ModelViewSet):
         serializer.save(user=self.request.user)
 
 
-
 from django.core.paginator import Paginator
 from django.shortcuts import render
 from .models import Job, JobType, JobStage
+
 
 def sarkari_jobs(request):
     sarkari_type = JobType.objects.get(name="Sarkari")
@@ -2191,6 +2120,7 @@ def job_detail_view(request, pk):
 
     return render(request, 'jobs/job_detail.html', context)
 
+
 # List and Create API View
 
 class ExperienceLevelViewSet(viewsets.ModelViewSet):
@@ -2233,12 +2163,14 @@ class OrderViewSet(viewsets.ModelViewSet):
         order.save()
         return Response(OrderSerializer(order).data)
 
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from .models import Cart, Order
 
 from django.utils.timezone import now
 from django.db import transaction
+
 
 @login_required
 def add_to_cart(request, item_type, item_id):
@@ -2345,6 +2277,7 @@ from rest_framework.exceptions import NotFound
 from .models import CurrentAffair
 from .serializers import CurrentAffairSerializer
 
+
 class CurrentAffairAPIView(APIView):
     """
     API for managing Current Affairs - supports create, retrieve, update, delete, and list.
@@ -2407,6 +2340,7 @@ from django.shortcuts import render
 from django.db.models import Q
 from datetime import datetime, timedelta
 from .models import CurrentAffair
+
 
 def current_affairs_list(request):
     """
@@ -2473,6 +2407,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 from .models import SavedJob, Cart, Order, Badge, UserResponse, QuizResult
 
+
 @login_required
 def user_dashboard(request):
     # Fetch data for the logged-in user
@@ -2497,3 +2432,140 @@ def user_dashboard(request):
 
     return render(request, 'user/user_dashboard.html', context)
 
+
+from django.utils.translation import activate
+
+
+def set_language(request):
+    user_language = request.GET.get('language', 'en')
+    activate(user_language)
+    return redirect(request.META.get('HTTP_REFERER', '/'))
+
+
+@api_view(["POST"])
+@parser_classes([MultiPartParser, FormParser])
+@permission_classes([AllowAny])
+def upload_questions(request):
+    """API endpoint to upload questions in bulk via an Excel file."""
+
+    logger.debug("Received a request to upload questions.")
+
+    # Check if file is provided
+    file = request.FILES.get("file")
+    if not file:
+        logger.error("No file provided in the request.")
+        return Response({"error": "No file provided"}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        # Read Excel file
+        logger.debug("Reading Excel file.")
+        df = pd.read_excel(file, engine="openpyxl")
+
+        # Expected columns in Excel file
+        required_columns = [
+            "Subject", "question_level", "unit", "topic", "question",
+            "option_1", "option_2", "option_3", "option_4", "answer", "explanation"
+        ]
+
+        # Check if all required columns exist
+        logger.debug("Checking if all required columns are present in the uploaded file.")
+        if not all(col in df.columns for col in required_columns):
+            logger.error("Invalid file format. Missing required columns.")
+            return Response({"error": "Invalid file format. Ensure all required columns are present."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        # Convert DataFrame to list of dictionaries
+        questions_list = []
+        logger.debug("Processing rows from the Excel file.")
+        for _, row in df.iterrows():
+            try:
+                subject_name = row["Subject"].strip()
+                logger.debug(f"Fetching Subject: {subject_name}")
+                subject = Subject.objects.get(name=subject_name)  # Fetch Subject instance
+
+                # Check if question already exists
+                existing_question = Questions.objects.filter(
+                    subject=subject, question=row["question"]
+                ).exists()
+
+                if existing_question:
+                    logger.warning(f"Question already exists: {row['question']}")
+                    return Response({"error": f"Question already exists: {row['question']}"},
+                                    status=status.HTTP_400_BAD_REQUEST)
+
+                question_data = {
+                    "Subject": subject.id,  # Foreign key reference
+                    "question_level": row["question_level"].strip(),
+                    "unit": row["unit"],
+                    "topic": row["topic"],
+                    "question": row["question"],
+                    "option_1": row["option_1"],
+                    "option_2": row["option_2"],
+                    "option_3": row["option_3"],
+                    "option_4": row["option_4"],
+                    "answer": int(row["answer"]),
+                    "explanation": row["explanation"]
+                }
+                questions_list.append(question_data)
+                logger.debug(f"Processed question: {row['question']}")
+
+            except Subject.DoesNotExist:
+                logger.error(f"Subject '{subject_name}' not found in database.")
+                return Response({"error": f"Subject '{subject_name}' not found in database."},
+                                status=status.HTTP_400_BAD_REQUEST)
+
+            except ValueError as e:
+                logger.error(f"Data error: {str(e)}")
+                return Response({"error": f"Data error: {str(e)}"},
+                                status=status.HTTP_400_BAD_REQUEST)
+
+        # Serialize and bulk create
+        logger.debug("Serializing and saving questions.")
+        serializer = QuestionsSerializer(data=questions_list, many=True)
+        if serializer.is_valid():
+            serializer.save()
+            logger.info(f"{len(questions_list)} questions uploaded successfully!")
+            return Response({"message": f"{len(questions_list)} questions uploaded successfully!"},
+                            status=status.HTTP_201_CREATED)
+        else:
+            logger.error(f"Validation errors: {serializer.errors}")
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    except Exception as e:
+        logger.error(f"An error occurred: {str(e)}")
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+def upload_questions_view(request):
+    """Render the Excel upload page and handle file uploads with detailed logging."""
+
+    if request.method == "POST" and request.FILES.get("file"):
+        file = request.FILES["file"]
+        api_url = "http://127.0.0.1:8000/upload-questions/"  # Change for production
+
+        logger.info(f"Received file upload request: {file.name}, Size: {file.size} bytes")
+
+        files = {"file": file}
+        try:
+            response = requests.post(api_url, files=files)
+            logger.info(f"Sent file to API: {api_url}, Status Code: {response.status_code}")
+
+            if response.status_code == 201:
+                messages.success(request, "File uploaded successfully! ✅")
+                logger.info(f"File {file.name} uploaded successfully.")
+                return render(request, 'dashboard.html')
+            else:
+                try:
+                    error_message = response.json().get("error", "Something went wrong!")
+                except Exception as e:
+                    error_message = "Failed to parse error response from API."
+                    logger.error(f"Error parsing API response: {e}")
+
+                messages.error(request, f"Upload failed: {error_message} ❌")
+                logger.error(f"File upload failed. API response: {response.text}")
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Request to API failed: {e}", exc_info=True)
+            messages.error(request, "Server connection failed. Please try again later. ❌")
+
+    return render(request, "question/upload_questions.html")

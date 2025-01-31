@@ -63,7 +63,24 @@
         }
         .btn-primary {
             background-color: #007bff;
-            border: none;
+            border: 2px solid red;
+            font-size: 1.1rem;
+            font-weight: bold;
+            padding: 10px 20px;
+            border-radius: 25px;
+        }
+         .btn-warning {
+            background-color: #ffc107;
+            border: 2px solid red;
+            color: white;
+            font-size: 1.1rem;
+            font-weight: bold;
+            padding: 10px 20px;
+            border-radius: 25px;
+        }
+         .btn-danger {
+            background-color: #D4403A;
+            border: 2px solid blue;
             font-size: 1.1rem;
             font-weight: bold;
             padding: 10px 20px;
@@ -121,8 +138,8 @@
             <form method="POST" action="{% url 'login' %}">
                 {% csrf_token %}
                 <div class="form-group">
-                    <label for="username">Username</label>
-                    <input type="text" class="form-control" id="username" name="username" placeholder="Enter your username" required>
+                    <label for="identifier">Enter your Email/Phone</label>
+                    <input type="text" class="form-control" id="identifier" name="identifier" placeholder="Enter your email/Phone no" required>
                 </div>
                 <div class="form-group">
                     <label for="password">Password</label>

@@ -12,7 +12,7 @@
                         <strong class="card-title" style="color: #0277bd; font-size: 1.2em;">{{ blog.title }}</strong>  <!-- Blog title with a bold blue color -->
 
                         <div class="card-content mt-2" style="color: #4e342e;">  <!-- Subtle brown text for content -->
-                            {% if blog.content|truncate_html:50|safe|length > 50 %}
+                            {% if blog.content|safe|length > 50 %}
                                 {{ blog.content|safe|slice:":50" }}...  <!-- Show first 50 characters -->
                                 <a href="{% url 'blog-detail-template' blog.pk %}" class="btn btn-link p-0" style="color: #0288d1;">View More</a>  <!-- Link styled as blue -->
                             {% else %}

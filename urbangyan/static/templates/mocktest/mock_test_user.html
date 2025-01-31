@@ -12,7 +12,7 @@
                 <div class="card h-100" style="background-color: #f9f9f9; border: 1px solid #3498db; border-radius: 8px;">
                     <div class="card-body d-flex flex-column justify-content-between">
                         <h5 class="card-title" style="color: #2c3e50; font-weight: bold;">{{ mocktest.Exam_Name }}</h5>
-                        <p class="card-text text-muted" style="font-size: 0.9rem;">{{ mocktest.Instructions|truncate_html:30|safe }}..</p>
+                        <!-- <p class="card-text text-muted" style="font-size: 0.9rem;">{{ mocktest.Exam_Name|safe }}..</p> -->
                         {% if user.is_authenticated %}
                             <a href="{% url 'mocktest_instructions' mocktest.pk %}"
                                class="btn btn-primary mt-2"

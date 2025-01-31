@@ -40,3 +40,5 @@ charset-normalizer
 requests
 dotenv
 pip install sendgrid
+gettext to be installed for langauge conversion
+pip install pandas openpyxl

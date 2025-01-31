@@ -1,19 +1,51 @@
 {% extends "base.html" %}
-
+{% load custom_filters %}
 {% block content %}
 <div class="container mt-4">
     <a href="/questions/create/" class="btn btn-success">Add new Question</a>
-    <h3></h3>
+    <a href="/upload_questions_template/" class="btn btn-success">Upload Question</a>
+    <h3>Question Bank</h3>
+
+    <!-- Filters Section -->
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <select id="subjectFilter" class="form-control" onchange="filterQuestions()">
+                <option value="">Filter by Subject</option>
+                {% for subject in subjects %}
+                    <option value="{{ subject }}">{{ subject }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-4">
+            <select id="unitFilter" class="form-control" onchange="filterQuestions()">
+                <option value="">Filter by Unit</option>
+                {% for unit in units %}
+                    <option value="{{ unit }}">{{ unit }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-4">
+            <select id="topicFilter" class="form-control" onchange="filterQuestions()">
+                <option value="">Filter by Topic</option>
+                {% for topic in topics %}
+                    <option value="{{ topic }}">{{ topic }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
     <!-- Search Container -->
     <div class="mb-3">
         <input type="text" id="search" class="form-control" placeholder="Search Questions" onkeyup="filterQuestions()">
     </div>
 
-    <table class="table table-bordered" style="background-color: #f0f8ff;"> <!-- Light blue background for the table -->
-        <thead style="background-color: #f8d8c0;"> <!-- Light orange header -->
+    <!-- Questions Table -->
+    <table class="table table-bordered" style="background-color: #f0f8ff;">
+        <thead style="background-color: #f8d8c0;">
             <tr>
                 <th>Subject</th>
-                <th>Quiz</th>
+                <th>Unit</th>
+                <th>Topic</th>
                 <th>Question</th>
                 <th>Actions</th>
             </tr>
@@ -21,9 +53,10 @@
         <tbody id="questionTableBody">
             {% for question in questions %}
                 <tr>
-                    <td>{{ question.subject.subject }}</td>
-                    <td>{{ question.quiz.quiz }}</td>
-                    <td>{{ question.question }}</td>
+                    <td>{{ question.Subject|safe }}</td>
+                    <td>{{ question.unit|safe }}</td>
+                    <td>{{ question.topic|safe }}</td>
+                    <td>{{ question.question|safe }}</td>
                     <td>
                         {% if user.is_authenticated %}
                             {% if user.is_staff_user %}
@@ -41,28 +74,29 @@
     </table>
 </div>
 
-{% include 'footer.html' %}
-
 <script>
     function filterQuestions() {
-        const input = document.getElementById('search');
-        const filter = input.value.toLowerCase();
+        const searchInput = document.getElementById('search').value.toLowerCase();
+        const subjectFilter = document.getElementById('subjectFilter').value.toLowerCase();
+        const unitFilter = document.getElementById('unitFilter').value.toLowerCase();
+        const topicFilter = document.getElementById('topicFilter').value.toLowerCase();
+
         const table = document.getElementById('questionTableBody');
         const rows = table.getElementsByTagName('tr');
 
         for (let i = 0; i < rows.length; i++) {
             const cols = rows[i].getElementsByTagName('td');
-            let rowVisible = false;
-            for (let j = 0; j < cols.length; j++) {
-                if (cols[j]) {
-                    const txtValue = cols[j].textContent || cols[j].innerText;
-                    if (txtValue.toLowerCase().indexOf(filter) > -1) {
-                        rowVisible = true;
-                        break;
-                    }
-                }
-            }
-            rows[i].style.display = rowVisible ? "" : "none"; // Show or hide row
+            const subject = cols[0].textContent.toLowerCase();
+            const unit = cols[1].textContent.toLowerCase();
+            const topic = cols[2].textContent.toLowerCase();
+            const question = cols[3].textContent.toLowerCase();
+
+            const matchesSearch = searchInput === '' || question.includes(searchInput);
+            const matchesSubject = subjectFilter === '' || subject === subjectFilter;
+            const matchesUnit = unitFilter === '' || unit === unitFilter;
+            const matchesTopic = topicFilter === '' || topic === topicFilter;
+
+            rows[i].style.display = matchesSearch && matchesSubject && matchesUnit && matchesTopic ? "" : "none";
         }
     }
 </script>

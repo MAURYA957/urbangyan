@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Questions</title>
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+
+    <style>
+        /* Global styles for page */
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Nav bar styles */
+        .navbar {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            font-size: 16px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .navbar a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            transition: 0.3s;
+        }
+
+        .navbar a:hover {
+            background-color: #0056b3;
+            border-radius: 5px;
+        }
+
+        /* Container styles */
+        .container {
+            background: white;
+            width: 50%;
+            margin: 30px auto;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            animation: fadeIn 0.8s ease-in-out;
+        }
+
+        h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .custom-file-upload {
+            display: inline-block;
+            padding: 12px 20px;
+            cursor: pointer;
+            background: #007bff;
+            color: white;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: 0.3s;
+        }
+
+        .custom-file-upload:hover {
+            background: #0056b3;
+        }
+
+        .file-name {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .upload-btn {
+            margin-top: 20px;
+            padding: 12px 25px;
+            background: #28a745;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: 0.3s;
+        }
+
+        .upload-btn:hover {
+            background: #218838;
+        }
+
+        .messages {
+            list-style: none;
+            padding: 0;
+            margin-top: 15px;
+        }
+
+        .messages li {
+            padding: 12px;
+            border-radius: 5px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .fa-check-circle {
+            color: #155724;
+        }
+
+        .fa-exclamation-circle {
+            color: #721c24;
+        }
+
+        .loading {
+            display: none;
+            font-size: 16px;
+            color: #007bff;
+            margin-top: 10px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Page Content -->
+    <div class="container">
+        <h2>📂 Upload Questions in Bulk</h2>
+
+        {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+                <li class="{% if message.tags == 'success' %}success{% else %}error{% endif %}">
+                    <i class="{% if message.tags == 'success' %}fas fa-check-circle{% else %}fas fa-exclamation-circle{% endif %}"></i>
+                    {{ message }}
+                </li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+
+        <form method="POST" enctype="multipart/form-data" id="uploadForm">
+            {% csrf_token %}
+
+            <label for="file-upload" class="custom-file-upload">
+                📁 Choose File
+            </label>
+            <input type="file" id="file-upload" class="file-input" name="file" accept=".xlsx" required>
+            <span class="file-name">No file chosen</span>
+
+            <button type="submit" class="upload-btn">📤 Upload</button>
+            <p class="loading">⏳ Uploading... Please wait.</p>
+        </form>
+    </div>
+
+    <script>
+        // Show selected file name
+        document.getElementById("file-upload").addEventListener("change", function() {
+            let fileName = this.files[0] ? this.files[0].name : "No file chosen";
+            document.querySelector(".file-name").textContent = fileName;
+        });
+
+        // Show loading text on form submit
+        document.getElementById("uploadForm").addEventListener("submit", function() {
+            document.querySelector(".loading").style.display = "block";
+        });
+    </script>
+
+</body>
+</html>
+{% endblock content %}

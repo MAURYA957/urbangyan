@@ -1,14 +1,14 @@
 from django.contrib import admin
-from .models import User, Blog, Comment, Offer, Subject, Course, Unit, Topic, Quiz, Questions, QuizResult, \
+from .models import User, Blog, Comment, Offer, Subject, Course, Unit, Topic, Questions, QuizResult, \
     UserSession, MockTestSubjectConfig, MockTest, UserResponse, ExperienceLevel, Cart, Order, SavedJob
 
 
 # Customizing the User admin
 class UserAdmin(admin.ModelAdmin):
-    list_display = ('username', 'first_name', 'last_name', 'email', 'is_staff_user', 'is_visitor', 'created_at')
-    search_fields = ('username', 'email', 'first_name', 'last_name')
+    list_display = ('full_name', 'phone', 'email', 'is_staff', 'is_visitor', 'created_at')
+    search_fields = ('full_name', 'email', 'phone')
     ordering = ('created_at',)
-    list_filter = ('is_staff_user', 'is_visitor')
+    list_filter = ('is_staff', 'is_visitor')
 
 
 admin.site.register(User, UserAdmin)
@@ -52,7 +52,7 @@ admin.site.register(Offer, OfferAdmin)
 
 # Registering Subject model
 class SubjectAdmin(admin.ModelAdmin):
-    list_display = ('name', 'description', 'authors')
+    list_display = ('name', 'authors')
     search_fields = ('name', 'authors')
     ordering = ('name',)
 
@@ -90,19 +90,10 @@ class TopicAdmin(admin.ModelAdmin):
 admin.site.register(Topic, TopicAdmin)
 
 
-# Registering quiz model
-class QuizAdmin(admin.ModelAdmin):
-    list_display = ('quiz', 'subject')
-    search_fields = ('quiz', 'subject')
-    ordering = ('quiz',)
-
-
-admin.site.register(Quiz, QuizAdmin)
-
 
 # Registering Questions model
 class QuestionsAdmin(admin.ModelAdmin):
-    list_display = ('Subject', 'question', 'created_at')
+    list_display = ('Subject', 'unit', 'topic', 'question', 'created_at')
     search_fields = ('question',)
     ordering = ('-created_at',)
 

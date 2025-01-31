@@ -29,18 +29,6 @@
             <label for="id_title" class="form-label">Title</label>
             <textarea id="id_title" name="title" class="form-control">{{ form_data.title|default:'' }}</textarea>
         </div>
-
-        <!-- Description Field -->
-        <div class="mb-3">
-            <label for="id_description" class="form-label">Description</label>
-            <textarea id="id_description" name="description" class="form-control">{{ form_data.description|default:'' }}</textarea>
-        </div>
-
-        <!-- Table of Contents Field -->
-        <div class="mb-3">
-            <label for="id_table_of_contents" class="form-label">Table of Contents</label>
-            <textarea id="id_table_of_contents" name="table_of_contents" class="form-control">{{ form_data.table_of_contents|default:'' }}</textarea>
-        </div>
         <!-- Submit Button -->
         <button type="submit" class="btn btn-primary">Save Unit</button>
     </form>

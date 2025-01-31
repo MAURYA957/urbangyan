@@ -1,58 +1,69 @@
 {% extends "base.html" %}
 {% load custom_filters %}
+{% load static %}
 
 {% block content %}
+
 <div class="container py-4">
     <h2 class="text-center mb-4 animated fadeInDown">
         <strong>Test Results for {{ mocktest.Exam_Name }}</strong>
     </h2>
 
-    <!-- Progress Bar -->
     <div class="progress mb-4 animated fadeIn">
-        <div class="progress-bar bg-success" role="progressbar"
-             style="width: {{ score|floatformat:0 }}%;"
-             aria-valuenow="{{ score }}"
-             aria-valuemin="0"
-             aria-valuemax="{{ mocktest.total_max_score }}">
-            {{ score }} / {{ mocktest.total_max_score }} Points
+        <div class="progress-bar {% if percentage_score < 50 %}bg-danger{% else %}bg-success{% endif %}" role="progressbar"
+             style="width: {{ percentage_score|floatformat:1 }}%; text-align: center; font-weight: bold;">
+            {{ percentage_score }} %
         </div>
     </div>
 
     <!-- Score and Badge Section -->
     <div class="d-flex justify-content-center mb-4 animated zoomIn">
-        <div class="card p-4 shadow-lg">
+        <div class="card p-4 shadow-lg" style="border-radius: 15px; background: linear-gradient(45deg, #ff7e5f, #feb47b);">
             <h5><strong>Your Score:</strong> {{ score }} / {{ mocktest.total_max_score }}</h5>
             <h5 style="color: {% if percentage_score < 50 %}red{% else %}green{% endif %};">
-    <strong>Your Score Percentage:</strong> {{ percentage_score }}%
-</h5>
+                <strong>Your Score Percentage:</strong> {{ percentage_score }}%
+            </h5>
             <h5><strong>Correct Answers:</strong> {{ correct_count }} / {{ mocktest.total_questions }}</h5>
-                {% if badge_type == 'No Badge' %}
-                    <div class="badge-info mt-6">
-                        <i class="fas fa-medal text-muted fa-2x"></i>
-                        <strong class="ml-2">No badge awarded yet.</strong>
-                        <p>Try again to improve your score and earn a badge!</p>
-                    </div>
-                {% else %}
-                    <div class="badge-info mt-3">
-                        <i class="fas fa-trophy text-success fa-2x"></i>
-                        <strong class="ml-2">Congratulations!</strong>
+
+            {% if badge_type == 'No Badge' %}
+                <div class="badge-info mt-6">
+                    <i class="fas fa-medal text-muted fa-2x"></i>
+                    <strong class="ml-2">No badge awarded yet.</strong>
+                    <p>Try again to improve your score and earn a badge!</p>
+                </div>
+            {% else %}
+                <div class="badge-info mt-3">
+                    <i class="fas fa-trophy text-success fa-2x"></i>
+                    <strong class="ml-2 text-warning">Congratulations...!</strong>
+                    <h5>
                         <p class="mt-2">
                             You earned the
                             <span class="badge text-success badge-{{ badge_type|lower }} p-2">
-                            {% if badge_type == "Gold" %}
-                                <i class="fas fa-medal text-warning" style="animation: bounce 2s infinite;"></i>
-                            {% elif badge_type == "Silver" %}
-                                <i class="fas fa-medal text-muted" style="animation: bounce 2s infinite;"></i>
-                            {% elif badge_type == "Bronze" %}
-                                <i class="fas fa-medal text-brown" style="animation: bounce 2s infinite;"></i>
-                            {% endif %}
-                            {{ badge_type }}
-                        </span> Badge.
-                            <br>
+                                {% if badge_type == "Gold" %}
+                                    <img src="{% static 'image/gold_cup.jpg' %}" alt="Gold Cup" class="badge-icon" style="width: 25px; height: 25px; margin-right: 5px;">
+                                    <i class="fas fa-medal text-warning" style="animation: bounce 2s infinite;"></i>
+                                    <div class="flower-shower gold-shower">
+                                        <img src="{% static 'image/buke.jpg' %}" alt="Flowers" class="flower">
+                                    </div>
+                                {% elif badge_type == "Silver" %}
+                                    <img src="{% static 'image/silver_cup.jpg' %}" alt="Silver Cup" class="badge-icon" style="width: 25px; height: 25px; margin-right: 5px;">
+                                    <i class="fas fa-medal text-muted" style="animation: bounce 2s infinite;"></i>
+                                    <div class="flower-shower silver-shower">
+                                        <img src="{% static 'image/buke.jpg' %}" alt="Flowers" class="flower">
+                                    </div>
+                                {% elif badge_type == "Bronze" %}
+                                    <img src="{% static 'image/bronze_cup.png' %}" alt="Bronze Cup" class="badge-icon" style="width: 25px; height: 25px; margin-right: 5px;">
+                                    <i class="fas fa-medal" style="color: #cd7f32; animation: bounce 2s infinite;"></i>
+                                    <div class="flower-shower bronze-shower">
+                                        <img src="{% static 'image/buke.jpg' %}" alt="Flowers" class="flower">
+                                    </div>
+                                {% endif %}
+                                {{ badge_type }}
+                            </span> Badge.
                         </p>
-                    </div>
-                {% endif %}
-
+                    </h5>
+                </div>
+            {% endif %}
         </div>
     </div>
 
@@ -201,5 +212,53 @@
     .zoomIn {
         animation-name: zoomIn;
     }
+
+    /* Flower Shower Animation */
+    .flower-shower {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        width: 100%;
+        pointer-events: none;
+        z-index: -1;
+    }
+
+    .flower {
+        position: absolute;
+        animation: flower-fall 3s infinite;
+        opacity: 0;
+        width: 30px;
+        height: 30px;
+    }
+
+    gold-shower .flower {
+        animation-delay: 0.5s;
+    }
+
+    silver-shower .flower {
+        animation-delay: 1s;
+    }
+
+    bronze-shower .flower {
+        animation-delay: 1.5s;
+    }
+
+    @keyframes flower-fall {
+        0% {
+            transform: translateY(-100px) rotate(0deg);
+            opacity: 1;
+        }
+        100% {
+            transform: translateY(100vh) rotate(360deg);
+            opacity: 0;
+        }
+    }
+
+    /* Restrict Browser Back Button */
+    window.history.pushState(null, null, window.location.href);
+    window.onpopstate = function() {
+        window.history.pushState(null, null, window.location.href);
+    };
 </style>
+
 {% endblock %}

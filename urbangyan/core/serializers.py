@@ -1,5 +1,5 @@
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from .models import Blog, Course, Topic, Quiz, Questions, User, UserSession, Unit, Subject, \
+from .models import Blog, Course, Topic, Questions, User, UserSession, Unit, Subject, \
     Offer, MockTestSubjectConfig, MockTest, SavedJob, ExperienceLevel, Order, Cart, AffairsCategory, CurrentAffair
 from rest_framework import serializers
 from django.contrib.auth.hashers import make_password
@@ -12,21 +12,21 @@ class UserSerializer(serializers.ModelSerializer):
         exclude = ['groups', 'user_permissions']  # Exclude many-to-many fields
 
     def create(self, validated_data):
-        # Hash the password before saving the user
-        if 'password' in validated_data:
-            validated_data['password'] = make_password(validated_data['password'])
-
-        user = User(**validated_data)
-        user.save()
+        """
+        Override create method to hash password and use the custom user manager
+        """
+        password = validated_data.pop('password', None)
+        user = User.objects.create_user(**validated_data, password=password)  # Ensures password is hashed
         return user
 
     def update(self, instance, validated_data):
-        # Hash the password if it's provided in the update request
+        """
+        Override update method to hash password if provided and update other fields
+        """
         password = validated_data.pop('password', None)
         if password:
-            instance.password = make_password(password)
+            instance.set_password(password)  # Use Django's built-in method
 
-        # Update the rest of the fields
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
 
@@ -34,21 +34,25 @@ class UserSerializer(serializers.ModelSerializer):
         return instance
 
     def to_representation(self, instance):
-        # Exclude the password field from the serialized output
+        """
+        Override to exclude password from API response
+        """
         representation = super().to_representation(instance)
-        representation.pop('password', None)  # Ensure password is not in the output
+        representation.pop('password', None)  # Remove password from output
         return representation
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    """
+    Custom JWT serializer to include additional user details in the token
+    """
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
 
         # Add custom claims
-        token['username'] = user.username
-        token['first_name'] = user.first_name
-        token['last_name'] = user.last_name
+        token['phone'] = user.phone
+        token['email'] = user.email
 
         return token
 
@@ -58,12 +62,6 @@ class BlogSerializer(serializers.ModelSerializer):
         model = Blog
         fields = '__all__'
 
-
-
-class QuizSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Quiz
-        fields = '__all__'
 
 
 class QuestionsSerializer(serializers.ModelSerializer):

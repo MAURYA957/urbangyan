@@ -1,0 +1,334 @@
+{% extends "base.html" %}
+{% load custom_filters %}
+{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Quiz</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            margin: 0;
+      .topbar {
+            display: inline-flex
+            background: rgba(0, 0, 0, 0.7);
+            padding: 1rem;
+            border-bottom: 2px solid #ddd;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .topbar h2 {
+            color: #ffcc00;
+            margin-right: 1rem;
+        }
+
+        .topbar button {
+            margin: 0 0.5rem;
+            padding: 0.7rem 1.5rem;
+            background: #ffcc00;
+            color: black;
+            border: none;
+            cursor: pointer;
+            border-radius: 10px;
+            font-weight: bold;
+            transition: transform 0.3s, background 0.3s;
+        }
+
+        .topbar button:hover {
+            background: #ffdb4d;
+            transform: scale(1.05);
+        }
+        .content {
+             flex: 1;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            margin: 20px;
+        }
+        .question-set {
+            display: none;
+        }
+         .sticky-header {
+            position: sticky;
+            top: 0;
+            background: rgba(198, 90, 13, 0.7);
+            z-index: 1000;
+            padding: 10px;
+            border: 2px solid #6680f5;
+        }
+        .sticky-header p {
+            margin: 0;
+        }
+        .question-container {
+            margin-top: 1rem;
+            border: 5px solid #66f5e4;
+        }
+        .question {
+            margin-bottom: 1rem;
+        }
+        .timer {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+        }
+        .total-questions {
+            margin-bottom: 1rem;
+            font-weight: bold;
+        }
+        .progress-bar {
+            height: 30px;
+            color: green;
+        }
+         .question-container {
+            margin-top: 20px;
+            border: 2px solid #66f5e4;
+        }
+        .question-counter {
+            margin: 5px;
+            padding: 5px 10px;
+            background-color: red;
+            color: white;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .attempted-questions-block {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .attempted-questions-block p {
+            margin: 0;
+        }
+        .progress-container {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        {% for set in question_sets %}
+            <button onclick="loadSet({{ set.set_number }}, {{ set.questions|length }})">Set {{ set.set_number }}</button>
+        {% endfor %}
+    </div>
+    <div class="content">
+        <div id="quiz-container">
+            {% for set in question_sets %}
+                <div class="question-set" id="set-{{ set.set_number }}">
+                    <div class="container sticky-header">
+                        <h3 class="text-center" style="color: blue;">Set {{ set.set_number }}</h3>
+                   <!-- Sticky Header with timer, total questions, and attempted count -->
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="timer-block">
+                            <strong><h4><i class="fa fa-clock" style="color: DodgerBlue;"></i> Duration: {{ set.set_duration }}</h4></strong>
+                        </div>
+                        <div class="attempted-questions-block">
+                            <strong><h4><i class="fa fa-clock" style="color: DodgerBlue;"></i> <span id="timer" aria-live="polite">Time Left: {{ test_duration }}</span></h4></strong>
+                        </div>
+                        <div class="total-questions-block">
+                          <strong><h4><i class="fa fa-clock" style="color: DodgerBlue;"></i> <span aria-live="polite">Total Questions: {{ set.questions|length }}</span></h4></strong>
+                        </div>
+                        <div class="attempted-questions-block">
+                            <strong><h4><i class="fa fa-list" style="color: green;"></i> Attempted: <span id="attempted-count">0</span> / {{ set.questions|length }}</h4></strong>
+                        </div>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress" style="height: 30px;">
+                            <div class="progress-bar" role="progressbar" id="progress-bar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                    </div>
+                        <div class="d-flex flex-wrap justify-content-center">
+                        {% for question in set.questions %}
+                        <span id="question-counter-{{ question.id }}" class="question-counter">
+                            {{ forloop.counter }}
+                        </span>
+                        {% endfor %}
+                        </div>
+                    </div>
+                    <form id="form-set-{{ set.set_number }}">
+                        {% csrf_token %}
+                        <div class="row"
+                        <div class="d-flex flex-wrap justify-content-center">
+                            {% for question in set.questions %}
+                              <div class="col-md-6 mb-4">
+                                <fieldset id="question-{{ question.id }}" class="p-3 border rounded">
+                                    <strong>{{ forloop.counter }}. {{ question.question|safe|striptags }}</strong>
+                                    <div>
+                                        <input type="radio" name="question_{{ question.id }}" value="1" id="q{{ question.id }}_1" onclick="updateQuestionStatus({{ question.id }}, 1)">
+                                        <label for="q{{ question.id }}_1">{{ question.option_1|safe }}</label>
+                                    </div>
+                                    <div>
+                                        <input type="radio" name="question_{{ question.id }}" value="2" id="q{{ question.id }}_2" onclick="updateQuestionStatus({{ question.id }}, 2)">
+                                        <label for="q{{ question.id }}_2">{{ question.option_2|safe }}</label>
+                                    </div>
+                                    <div>
+                                        <input type="radio" name="question_{{ question.id }}" value="3" id="q{{ question.id }}_3" onclick="updateQuestionStatus({{ question.id }}, 3)">
+                                        <label for="q{{ question.id }}_3">{{ question.option_3|safe }}</label>
+                                    </div>
+                                    <div>
+                                        <input type="radio" name="question_{{ question.id }}" value="4" id="q{{ question.id }}_4" onclick="updateQuestionStatus({{ question.id }}, 4)">
+                                        <label for="q{{ question.id }}_4">{{ question.option_4|safe }}</label>
+                                    </div>
+                                    <!-- Mark for Review Button -->
+                                    <button type="button" class="btn btn-warning btn-sm mt-2" id="mark-btn-{{ question.id }}" onclick="markForReview({{ question.id }})">Mark for Review</button>
+                                     <!-- Redo Button to Reset Answer -->
+                                     <button type="button" class="btn btn-primary btn-sm mt-2" onclick="redoQuestion({{ question.id }})" style="display:none;">Redo</button>
+                                    <!-- Hidden status container for each question -->
+                                    <div id="status-{{ question.id }}" class="question-status" style="display:none;"></div>
+                                </fieldset>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <button type="button" class="btn btn-success w-100 font-weight-bold" onclick="submitQuiz({{ set.set_number }})">Submit Set</button>
+                    </form>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    </div>
+</body>
+ <script>
+        let timer;
+        let timeLeft;
+
+        function startTimer(totalQuestions) {
+            timeLeft = totalQuestions * 15; // 15 seconds per question
+            updateTimer();
+            timer = setInterval(function() {
+                timeLeft--;
+                updateTimer();
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    alert("Time's up!");
+                    // Automatically submit the quiz if time runs out
+                    submitQuiz();
+                }
+            }, 1000);
+        }
+
+        function updateTimer() {
+            const timerElement = document.getElementById('timer');
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            timerElement.textContent = `Time Left: ${minutes}:${seconds < 10 ? '0' + seconds : seconds}`;
+        }
+
+        function loadSet(setNumber, totalQuestions) {
+            const sets = document.querySelectorAll('.question-set');
+            sets.forEach(set => set.style.display = 'none');
+            document.getElementById(`set-${setNumber}`).style.display = 'block';
+            startTimer(totalQuestions);
+        }
+
+        function submitQuiz(setNumber) {
+            const form = document.createElement("form");
+            form.method = "POST";
+            form.action = "{% url 'submit_quiz' %}";  // Django URL for quiz submission
+
+            // Add CSRF token for security
+            const csrfToken = document.createElement("input");
+            csrfToken.type = "hidden";
+            csrfToken.name = "csrfmiddlewaretoken";
+            csrfToken.value = "{{ csrf_token }}";
+            form.appendChild(csrfToken);
+
+            // Add quiz set number
+            const quizSetInput = document.createElement("input");
+            quizSetInput.type = "hidden";
+            quizSetInput.name = "quiz_set";
+            quizSetInput.value = setNumber;
+            form.appendChild(quizSetInput);
+
+            // Collect selected answers
+            document.querySelectorAll("input[type=radio]:checked").forEach(input => {
+                const hiddenInput = document.createElement("input");
+                hiddenInput.type = "hidden";
+                hiddenInput.name = input.name;
+                hiddenInput.value = input.value;
+                form.appendChild(hiddenInput);
+            });
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+        document.addEventListener('DOMContentLoaded', function () {
+        let attemptedQuestions = 0;
+        const totalQuestions = {{ questions|length }};
+        const attemptedCountElement = document.getElementById('attempted-count');
+
+        // Mark for Review Functionality
+        window.markForReview = function (questionId) {
+            const counterElement = document.getElementById(`question-counter-${questionId}`);
+            const markButton = document.getElementById(`mark-btn-${questionId}`);
+            const redoButton = document.querySelector(`#question-${questionId} button.btn-primary`);
+
+            if (markButton.textContent === "Mark for Review") {
+                counterElement.style.backgroundColor = 'yellow';
+                markButton.textContent = "Unmark for Review";
+
+            } else {
+                if (counterElement.classList.contains('attempted')) {
+                    counterElement.style.backgroundColor = 'green';
+                } else {
+                    counterElement.style.backgroundColor = 'red';
+                    redoButton.style.display = 'none'; // Hide redo button if unmarked and not attempted
+                }
+                markButton.textContent = "Mark for Review";
+            }
+        };
+
+         // Update Progress Bar
+        function updateProgressBar() {
+            const progressBar = document.getElementById('progress-bar');
+            const progressPercentage = (attemptedQuestions / totalQuestions) * 100;
+            progressBar.style.backgroundColor = 'green';
+            progressBar.style.width = `${progressPercentage}%`;
+        }
+
+        // Update Attempted Count
+        function updateAttemptedCount() {
+            attemptedCountElement.textContent = attemptedQuestions;
+        }
+
+        // Update Question Status
+        window.updateQuestionStatus = function (questionId, selectedOption) {
+            const counterElement = document.getElementById(`question-counter-${questionId}`);
+            const redoButton = document.querySelector(`#question-${questionId} button.btn-primary`);
+
+            if (selectedOption) {
+                if (!counterElement.classList.contains('attempted')) {
+                    counterElement.style.backgroundColor = 'green';
+                    counterElement.classList.add('attempted');
+                    attemptedQuestions++;
+                    redoButton.style.display = 'inline-block'; // Enable redo button
+                }
+                updateAttemptedCount();
+                updateProgressBar();
+            }
+        };
+
+        // Redo Functionality
+        window.redoQuestion = function (questionId) {
+            const counterElement = document.getElementById(`question-counter-${questionId}`);
+            const statusContainer = document.getElementById(`status-${questionId}`);
+            const questionInputs = document.querySelectorAll(`[name="question_${questionId}"]`);
+            const redoButton = document.querySelector(`#question-${questionId} button.btn-primary`);
+
+            // Reset the question inputs and counter
+            questionInputs.forEach(input => (input.checked = false));
+            counterElement.style.backgroundColor = 'red';
+            counterElement.classList.remove('attempted');
+            redoButton.style.display = 'none'; // Hide redo button
+            attemptedQuestions = Math.max(0, attemptedQuestions - 1);
+            updateAttemptedCount();
+            updateProgressBar();
+        };
+         });
+    </script>
+</html>
+{% endblock content %}

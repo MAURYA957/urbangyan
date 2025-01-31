@@ -47,6 +47,7 @@
             bottom: 20px;
             right: 20px;
             background-color: #25d366;
+            border: 2px solid red;
             color: white;
             border-radius: 50%;
             padding: 15px;
@@ -186,22 +187,25 @@
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav mx-auto">
                 <li class="nav-item">
-                    <a class="nav-link" href="/">Home</a>
+                    <a class="btn btn-info me-2 nav-link" href="/">Home</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="/blog_user/">Blogs</a>
+                    <a class="btn btn-info me-2 nav-link" href="/blog_user/">Blogs</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="/mocktest_user/">Mock_Test</a>
+                    <a class="btn btn-info me-2 nav-link" href="/mocktest_user/">Mock_Test</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="/current-affairs-list/">Affairs</a>
+                    <a class="btn btn-info me-2 nav-link" href="/current-affairs-list/">Affairs</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="/sarkari-jobs/">Naukri</a>
+                    <a class="btn btn-info me-2 nav-link" href="/sarkari-jobs/">Naukri</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="/news/">News</a>
+                    <a class="btn btn-info me-2 nav-link" href="/subjects_user/">Books</a>
+                </li>
+                <li class="nav-item">
+                    <a class="btn btn-info me-2 nav-link" href="/news/">News</a>
                 </li>
             </ul>
         </div>
@@ -214,27 +218,38 @@
                     {% else %}
                         <img src="{% static 'image/img.png' %}" alt="Default User Photo" class="rounded-circle border" width="40" height="40">
                     {% endif %}
-                    <span class="ms-2 text-red fw-bold">Hi, {{ user.username }}</span>
+                    <span class="ms-2 text-red fw-bold">Hi, {{ user.full_name }}</span>
                 </div>
-                <div class="dropdown">
-                    <button
-                        class="btn btn-info dropdown-toggle"
-                        type="button"
-                        id="dropdownMenuButton"
-                        data-bs-toggle="dropdown"
-                        aria-expanded="false">
-                        User
-                    </button>
-                <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                    <li><a class="dropdown-item" href="{% url 'logout' %}">Logout</a></li>
-                    <li><a class="dropdown-item" href="/user_dashboard/">Dashboard</a></li>
-                    <li><a class="dropdown-item" href="{% url 'update_user' user.id %}">Update Profile</a>
-                    <li><a class="dropdown-item" href="{% url 'delete_user' request.user.id %}">Delete Profile</a>
+                <div class="dropdown" style="border: 3px solid #28a745; font-size: 1.1rem; font-weight: bold; padding: 0; border-radius: 8px; background-color: #007bf0; color: white;">
+                <button class="btn btn-info dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                    User
+                </button>
+                <ul class="dropdown-menu" style="border: 2px solid #007bff; font-size: 1.1rem; font-weight: bold; padding: 10px 20px; border-radius: 8px; background-color: #acd4f8; color: white;" aria-labelledby="dropdownMenuButton">
+                    <li>
+                        <a class="dropdown-item" style="border: 2px solid #007bff; font-size: 1.1rem; font-weight: bold; padding: 10px 20px; border-radius: 8px; background-color: #32CD32; color: white;" href="/user_dashboard/">
+                            Dashboard
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" style="border: 2px solid #ffc107; font-size: 1.1rem; font-weight: bold; padding: 10px 20px; border-radius: 8px; background-color: #ffc107; color: white;" href="{% url 'update_user' user.id %}">
+                            Update Profile
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" style="border: 2px solid #007bff; font-size: 1.1rem; font-weight: bold; padding: 10px 20px; border-radius: 8px; background-color: #FF5733 ; color: white;" href="{% url 'logout' %}">
+                            Logout
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" style="border: 2px solid #d4403a; font-size: 1.1rem; font-weight: bold; padding: 10px 20px; border-radius: 8px; background-color: #d4403a; color: white;" href="{% url 'delete_user' request.user.id %}">
+                            Delete Profile
+                        </a>
+                    </li>
                 </ul>
             </div>
             {% else %}
-                <a class="btn btn-success me-2" href="/create_user/">Sign Up</a>
-                <a class="btn btn-primary" href="/login/">Login</a>
+                <a class="btn btn-success me-2" style="border: 2px solid red; font-size: 1.1rem; font-weight: bold; padding: 10px 20px; border-radius: 25px;" href="/create_user/">Sign Up</a>
+                <a class="btn btn-primary me-2" style="border: 2px solid red; font-size: 1.1rem; font-weight: bold; padding: 10px 20px; border-radius: 25px;"  href="/login/">Login</a>
             {% endif %}
         </div>
     </div>

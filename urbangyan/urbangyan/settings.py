@@ -45,7 +45,11 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'your-default-secret-key')  # L
 DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'  # Load debug setting from environment variable
 
 # ALLOWED_HOSTS setting
-ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', '127.0.0.1,666a-2409-40d0-10c6-f40-f927-894d-afab-8037.ngrok-free.app').split(',')
+# Fetch DJANGO_ALLOWED_HOSTS from the environment or use default values
+ALLOWED_HOSTS = os.environ.get(
+    'DJANGO_ALLOWED_HOSTS',
+    '127.0.0.1,localhost,c02f-2401-4900-8086-b243-2062-6ed5-fc6c-f8f3.ngrok-free.app'
+).split(',')
 
 
 # Application definition
@@ -77,6 +81,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.locale.LocaleMiddleware',  # Enable this middleware
 ]
 
 ROOT_URLCONF = 'urbangyan.urls'
@@ -246,8 +251,7 @@ LOGGING = {
 }
 
 AUTHENTICATION_BACKENDS = (
-    'django.contrib.auth.backends.ModelBackend',  # Default backend
-    # Add any custom backends if applicable
+    'django.contrib.auth.backends.ModelBackend',  # Keep the default backend for other cases
 )
 
 
@@ -266,11 +270,8 @@ CKEDITOR_CONFIGS = {
 }
 
 CSRF_TRUSTED_ORIGINS = [
-    'https://666a-2409-40d0-10c6-f40-f927-894d-afab-8037.ngrok-free.app',
-]
-
-CSRF_TRUSTED_ORIGINS = [
-    'https://*.ngrok-free.app',
+    'http://c02f-2401-4900-8086-b243-2062-6ed5-fc6c-f8f3.ngrok-free.app',
+    'https://c02f-2401-4900-8086-b243-2062-6ed5-fc6c-f8f3.ngrok-free.app',  # For HTTPS
 ]
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -280,3 +281,9 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'urbangyanin@gmail.com'  # Replace with your email
 EMAIL_HOST_PASSWORD = 'bgru zsro bvfu ivqi'  # Replace with your email password
 DEFAULT_FROM_EMAIL = 'Urban Gyan Admin'
+
+
+LANGUAGES = [
+    ('en', ('English')),
+    ('hi', ('Hindi')),
+]

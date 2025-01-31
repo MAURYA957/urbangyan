@@ -1,26 +1,24 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
-from django.views.generic import TemplateView
 from . import views
 from .views import (
     BlogViewSet,
     CourseViewSet,
     TopicViewSet,
-    QuizViewSet,
     UserRegistrationView,
     UserUpdateView,
-    CustomTokenObtainPairView, UsernameAvailabilityView,
+    CustomTokenObtainPairView,
     QuestionsViewSet, login,
     LoginAPIView,
     dashboard_view, logout, UserSessionListCreateAPIView, UserSessionDetailAPIView,
     topic_user, SubjectViewSet, UnitViewSet, OfferCreateAPIView, OfferUpdateAPIView,
     OfferDeleteAPIView, OfferManagement, get_units, MockTestViewSet, MockTestListView,
     MockTestCreateView, MockTestUpdateView, MockTestDeleteView, MockTest_user, test_submit,
-    mocktest_detailview, test_result, register_user, user_quizzes_view, quizzes_by_subject, AdvertisementViewSet,
+    mocktest_detailview, register_user, AdvertisementViewSet,
     JobTypeViewSet, JobCategoryViewSet, JobStageViewSet, JobViewSet, SavedJobViewSet, ExperienceLevelViewSet,
     CartViewSet, OrderViewSet, CurrentAffairAPIView, current_affairs_list, AffairsCategoryViewSet, job_detail_view,
-    update_user_view, delete_user_view
+    update_user_view, delete_user_view, submit_quiz, upload_questions, upload_questions_view
 )
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
@@ -28,6 +26,7 @@ from drf_yasg import openapi
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.auth import views as auth_views
+from django.conf.urls.i18n import i18n_patterns
 
 
 
@@ -51,7 +50,6 @@ router = DefaultRouter()
 router.register(r'blogs', BlogViewSet, basename='blog')
 router.register(r'courses', CourseViewSet, basename='course')
 router.register(r'topics', TopicViewSet, basename='topic')
-router.register(r'quizzes', QuizViewSet, basename='quiz')
 router.register(r'questions', QuestionsViewSet, basename='question')
 router.register(r'subjects', SubjectViewSet, basename='subject')
 router.register(r'units', UnitViewSet, basename='unit')
@@ -84,7 +82,7 @@ urlpatterns = [
     # User registration URL
     path('api/users/', UserRegistrationView.as_view(), name='user_registration'),
     path('api/login/', LoginAPIView.as_view(), name='login_api'),
-    path('api/username_availability/', UsernameAvailabilityView.as_view(), name='username_availability'),
+
 
     # User update URL
     path('api/users/<int:pk>/', UserUpdateView.as_view(), name='user_update'),
@@ -99,6 +97,7 @@ urlpatterns = [
     # Swagger URLs
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
+
 
     # Blog URLs
     path('blogs/', views.list_blogs_view, name='blogs-list-template'),
@@ -122,32 +121,13 @@ urlpatterns = [
     path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(template_name='user/password_reset_confirm.html'), name='password_reset_confirm'),
     path('reset/done/', auth_views.PasswordResetCompleteView.as_view(template_name='user/password_reset_complete.html'), name='password_reset_complete'),
 
-
     # Questions URLs
     path('questions/', views.list_questions_view, name='questions-list-template'),
     path('questions/create/', views.create_question_view, name='question-create-template'),
     path('questions/<int:pk>/update/', views.update_question_view, name='question-update-template'),
     path('questions/<int:pk>/delete/', views.delete_question_view, name='question-delete-template'),
-    #path('questions_view/', views.list_questions_view, name='questions-list-template'),
-
-    # quiz list and detail views
-    path('questions_view/<int:quiz_id>/', views.questions_view, name='questions_view'),
-    # View to display the quiz and questions
-    path('questions_view/<int:quiz_id>/submit/', views.questions_submit, name='questions_submit'),
-    # URL to handle quiz submission
-
-    # URL to save result (if you have result-saving logic)
-    path('questions_view/<int:quiz_id>/save-result/', views.questions_submit, name='save-questions-result'),
-
-
-    #Quize template url
-    path('quizzes/', views.list_quizzes_view, name='quiz-list-template'),
-    path('quizzes/create/', views.create_quiz_view, name='quiz-create-template'),
-    path('quizzes/<int:pk>/update/', views.update_quiz_view, name='quiz-update-template'),
-    path('quizzes/<int:pk>/delete/', views.delete_quiz_view, name='quiz-delete-template'),
-    path('quizzes/<int:subject_id>/', quizzes_by_subject, name='quizzes_by_subject'),
-    path('quiz_view/', user_quizzes_view, name='quiz_view'),
-
+    path('filter-units/', views.filter_units, name='filter_units'),
+    path('filter-topics/', views.filter_topics, name='filter_topics'),
 
     # Course  User URLs
     path('course_user/', views.course_user, name='course-user-template'),
@@ -223,6 +203,11 @@ urlpatterns = [
     path('current-affairs/<int:pk>/', CurrentAffairAPIView.as_view(), name='current_affairs_detail'),
     path('current-affairs-list/', current_affairs_list, name='current_affairs_list'),
 
+    # URL for creating a quiz based on subject, unit, or topic
+    path('create_quiz/', views.quiz, name='create_quiz'),
+    path('submit-quiz/', submit_quiz, name='submit_quiz'),
+    path('upload-questions/', upload_questions, name='upload_questions'),
+    path('upload_questions_template/', upload_questions_view, name='upload_questions_template'),
 ]
 
 # Serve media files during development
