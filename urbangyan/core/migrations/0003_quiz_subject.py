@@ -7,13 +7,19 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0002_remove_quiz_course_remove_quiz_image_and_more'),
+        ("core", "0002_remove_quiz_course_remove_quiz_image_and_more"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='quiz',
-            name='subject',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='quiz', to='core.subject'),
+            model_name="quiz",
+            name="subject",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="quiz",
+                to="core.subject",
+            ),
         ),
     ]

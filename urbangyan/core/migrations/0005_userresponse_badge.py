@@ -8,29 +8,74 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0004_mocktest_questions'),
+        ("core", "0004_mocktest_questions"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='UserResponse',
+            name="UserResponse",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('selected_option', models.IntegerField()),
-                ('is_correct', models.BooleanField()),
-                ('mock_test', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='user_responses', to='core.mocktest')),
-                ('question', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='core.questions')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("selected_option", models.IntegerField()),
+                ("is_correct", models.BooleanField()),
+                (
+                    "mock_test",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="user_responses",
+                        to="core.mocktest",
+                    ),
+                ),
+                (
+                    "question",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="core.questions"
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='Badge',
+            name="Badge",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('badge_type', models.CharField(max_length=100)),
-                ('date_awarded', models.DateTimeField(auto_now_add=True)),
-                ('mock_test', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='core.mocktest')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("badge_type", models.CharField(max_length=100)),
+                ("date_awarded", models.DateTimeField(auto_now_add=True)),
+                (
+                    "mock_test",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="core.mocktest"
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
         ),
     ]

@@ -6,13 +6,15 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0003_quiz_subject'),
+        ("core", "0003_quiz_subject"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='mocktest',
-            name='questions',
-            field=models.ManyToManyField(related_name='mock_tests', to='core.questions'),
+            model_name="mocktest",
+            name="questions",
+            field=models.ManyToManyField(
+                related_name="mock_tests", to="core.questions"
+            ),
         ),
     ]

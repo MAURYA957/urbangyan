@@ -1,0 +1,52 @@
+<form method="POST">
+  {% csrf_token %}
+  <label for="topic">Select Topic:</label>
+  <select name="topic_id" id="topic">
+    {% for topic in topics %}
+      <option value="{{ topic.id }}">{{ topic.topic }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit" name="generate">Generate Questions</button>
+</form>
+
+{% if generated_questions %}
+  <form method="POST">
+    {% csrf_token %}
+    <button type="submit" name="save">Save Questions</button>
+
+    <h3>Generated Questions</h3>
+    <ul>
+      {% for question in generated_questions %}
+        <li>
+          <strong>{{ question.question }}</strong><br>
+          Option 1: {{ question.option_1 }}<br>
+          Option 2: {{ question.option_2 }}<br>
+          Option 3: {{ question.option_3 }}<br>
+          Option 4: {{ question.option_4 }}<br>
+
+          {% with answer_index=question.answer %}
+            <strong>Correct Answer:
+              {% if answer_index == 0 %}
+                Option 1: {{ question.option_1 }}
+              {% elif answer_index == 1 %}
+                Option 2: {{ question.option_2 }}
+              {% elif answer_index == 2 %}
+                Option 3: {{ question.option_3 }}
+              {% elif answer_index == 3 %}
+                Option 4: {{ question.option_4 }}
+              {% endif %}
+            </strong>
+          {% endwith %}
+        </li>
+      {% endfor %}
+    </ul>
+  </form>
+{% endif %}
+
+{% if messages %}
+  <ul>
+    {% for message in messages %}
+      <li>{{ message }}</li>
+    {% endfor %}
+  </ul>
+{% endif %}

@@ -7,8 +7,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <style>
         body {
             background: linear-gradient(120deg, #d4fc79, #96e6a1);
@@ -41,50 +39,90 @@
             margin: 0 auto 20px;
         }
         .login-container {
-            background-color: #fff;
+            background-color: #9ac9f5 ;
             padding: 20px;
-            border-radius: 15px;
+            border-radius: 20px;
             box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
             max-width: 400px;
             width: 100%;
             text-align: center;
+            opacity: 0.6;
         }
         h2 {
             color: #007bff;
             margin-bottom: 20px;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            width: 100%;
+            color: white;
+            max-width: 450px;
+            background: #C70039;
+            border-radius: 25px;
+            border: 2px solid red;
+            padding: 2px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            opacity: 0.9;
         }
         .form-group label {
             font-weight: bold;
-            color: #333;
+            color: #C70039;
+            text-align: right;
         }
         .form-control {
-            border-radius: 5px;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
+            border-radius: 15px;
+            border: 2px solid red;
+            width: 100%;
+            padding: 5px;
+            margin-top: 5px;
+            transition: all 0.3s
         }
-        .btn-primary {
+        .btn-1 {
+            width: 100%;
+            padding: 5px;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+            opacity: 0.9;
+        }
+
+        .btn-primary-1 {
             background-color: #007bff;
+            color: white;
             border: 2px solid red;
             font-size: 1.1rem;
             font-weight: bold;
-            padding: 10px 20px;
+            padding: 5px 10px;
             border-radius: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            opacity: 0.9;
         }
-         .btn-warning {
+         .btn-warning-1 {
             background-color: #ffc107;
             border: 2px solid red;
             color: white;
             font-size: 1.1rem;
             font-weight: bold;
-            padding: 10px 20px;
+            padding: 5px 10px;
             border-radius: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            opacity: 0.9;
         }
-         .btn-danger {
+         .btn-danger-1 {
             background-color: #D4403A;
             border: 2px solid blue;
             font-size: 1.1rem;
+            color: white;
             font-weight: bold;
-            padding: 10px 20px;
+            padding: 5px 10px;
             border-radius: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            opacity: 0.9;
         }
         .btn-secondary {
             border: none;
@@ -92,10 +130,10 @@
             padding: 10px 20px;
             border-radius: 25px;
         }
-        .btn:hover {
+        .btn-1:hover {
             opacity: 0.9;
         }
-        footer {
+        footer-1 {
             background-color: #f8f9fa;
             padding: 10px 0;
             position: relative;
@@ -104,11 +142,21 @@
             text-align: center;
             z-index: 10;
         }
-        footer p {
+        footer-1 p {
             margin: 0;
             color: #6c757d;
             font-size: 0.9rem;
         }
+        .alert {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        .alert-success { background-color: #d4edda; color: #155724; }
+        .alert-danger { background-color: #f8d7da; color: #721c24; }
     </style>
 </head>
 <body>
@@ -145,9 +193,9 @@
                     <label for="password">Password</label>
                     <input type="password" class="form-control" id="password" name="password" placeholder="Enter your password" required>
                 </div>
-                <button type="submit" class="btn btn-primary btn-block">Login</button>
-                <a href="/password-reset/" class="btn btn-warning btn-block">Forgot Password</a>
-                <a href="{% url 'dashboard' %}" class="btn btn-danger btn-block">Cancel</a>
+                <button type="submit" class="btn-1 btn-primary-1 btn-block">Login</button>
+                <button href="{% url 'dashboard' %}" class="btn-1 btn-danger-1 btn-block">Forgot Password</button>
+                <button href="/password-reset/" class="btn-1 btn-warning-1 btn-block">Cancel</button>
             </form>
         </div>
     </div>

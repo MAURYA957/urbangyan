@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% load custom_filters %}
 {% block content %}
-<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -153,7 +152,7 @@
                     <form id="form-set-{{ set.set_number }}">
                         {% csrf_token %}
                         <div class="row"
-                        <div class="d-flex flex-wrap justify-content-center">
+                            <div class="d-flex flex-wrap justify-content-center">
                             {% for question in set.questions %}
                               <div class="col-md-6 mb-4">
                                 <fieldset id="question-{{ question.id }}" class="p-3 border rounded">

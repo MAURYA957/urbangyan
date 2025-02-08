@@ -7,13 +7,17 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0005_userresponse_badge'),
+        ("core", "0005_userresponse_badge"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='mocktestsubjectconfig',
-            name='subject',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='mock_test_subject_configs', to='core.subject'),
+            model_name="mocktestsubjectconfig",
+            name="subject",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="mock_test_subject_configs",
+                to="core.subject",
+            ),
         ),
     ]

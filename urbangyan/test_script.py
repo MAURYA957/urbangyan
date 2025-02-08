@@ -9,7 +9,9 @@ def test_fetch_and_post():
     print("Testing fetch_current_affairs...")
     news = fetch_current_affairs()
     if not news:
-        print("Failed to fetch current affairs. Check your API key or network connection.")
+        print(
+            "Failed to fetch current affairs. Check your API key or network connection."
+        )
         return
 
     print(f"Fetched {len(news)} news articles:")
@@ -22,11 +24,16 @@ def test_fetch_and_post():
         post_url = post_to_blogspot(news)
         print(f"Blog post published successfully: {post_url}")
     except FileNotFoundError as e:
-        print(f"File not found: {e}. Ensure the 'credentials' file is in the correct location.")
+        print(
+            f"File not found: {e}. Ensure the 'credentials' file is in the correct location."
+        )
     except GoogleAuthError as e:
-        print(f"Google authentication error: {e}. Check your credentials or token.json.")
+        print(
+            f"Google authentication error: {e}. Check your credentials or token.json."
+        )
     except Exception as e:
         print(f"An error occurred: {e}")
+
 
 # Run the test
 if __name__ == "__main__":
