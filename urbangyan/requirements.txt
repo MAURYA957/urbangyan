@@ -38,8 +38,10 @@ lxml>=4.9,<5.0
 # Additional utilities
 charset-normalizer
 requests
-dotenv
-pip install sendgrid
-gettext to be installed for langauge conversion
-pip install pandas openpyxl
-pip install python-dateutil
+python-dotenv
+sendgrid
+pandas
+openpyxl
+python-dateutil
+
+# gettext needs to be installed separately for language conversion
